@@ -9,12 +9,14 @@ export class DiaryController {
       
       const limitParam = req.query.limit;
       const offsetParam = req.query.offset;
-      
+      const searchParam = req.query.search;
+
       const limit = typeof limitParam === 'string' ? parseInt(limitParam, 10) : 10;
       const offset = typeof offsetParam === 'string' ? parseInt(offsetParam, 10) : 0;
+      const search = typeof searchParam === 'string' && searchParam.trim() ? searchParam.trim() : undefined;
 
-      const entries = await SmerModel.findByUserId(userId, limit, offset);
-      const total = await SmerModel.countByUserId(userId);
+      const entries = await SmerModel.findByUserId(userId, limit, offset, search);
+      const total = await SmerModel.countByUserId(userId, search);
 
       res.json({
         success: true,
@@ -37,7 +39,6 @@ export class DiaryController {
     try {
       const userId = (req as any).userId;
       
-      // Получаем id и проверяем, что это строка
       const idParam = req.params.id;
       
       if (!idParam) {
@@ -47,7 +48,6 @@ export class DiaryController {
         });
       }
 
-      // Проверяем, что строка, а не массив
       if (Array.isArray(idParam)) {
         return res.status(400).json({
           success: false,
@@ -98,7 +98,7 @@ static async createEntry(req: Request, res: Response) {
       selected_emotions
     } = req.body;
 
-    // Валидация обязательных полей
+    // Заполнение обязательных полей
     if (!situation_description || !thoughts || !reaction_description) {
       return res.status(400).json({
         success: false,
@@ -106,10 +106,7 @@ static async createEntry(req: Request, res: Response) {
       });
     }
 
-    // Добавляем названия эмоций, если их нет
     if (selected_emotions && Array.isArray(selected_emotions)) {
-      // Здесь можно сделать запрос к БД для получения названий
-      // Но пока оставляем как есть
     }
 
     const entry = await SmerModel.create({
@@ -140,7 +137,6 @@ static async createEntry(req: Request, res: Response) {
     try {
       const userId = (req as any).userId;
       
-      // Получаем id и проверяем, что это строка
       const idParam = req.params.id;
       
       if (!idParam) {
@@ -150,7 +146,6 @@ static async createEntry(req: Request, res: Response) {
         });
       }
 
-      // Проверяем, что строка, а не массив
       if (Array.isArray(idParam)) {
         return res.status(400).json({
           success: false,
@@ -196,7 +191,6 @@ static async createEntry(req: Request, res: Response) {
     try {
       const userId = (req as any).userId;
       
-      // Получаем id и проверяем, что это строка
       const idParam = req.params.id;
       
       if (!idParam) {
@@ -206,7 +200,6 @@ static async createEntry(req: Request, res: Response) {
         });
       }
 
-      // Проверяем, что строка, а не массив
       if (Array.isArray(idParam)) {
         return res.status(400).json({
           success: false,

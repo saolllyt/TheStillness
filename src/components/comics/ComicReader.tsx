@@ -6,10 +6,8 @@ import {
   Image,
   TouchableOpacity,
   Modal,
-  FlatList,
   Dimensions,
   ActivityIndicator,
-  Platform,
   Alert,
   ScrollView,
 } from 'react-native';
@@ -18,8 +16,7 @@ import { Feather } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
 import { Asset } from 'expo-asset';
 import * as FileSystem from 'expo-file-system/legacy';
-import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
-import { Button } from '../common/Button';
+import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../../constants/theme';
 import api from '../../services/api/client';
 
 interface ComicReaderProps {
@@ -28,13 +25,32 @@ interface ComicReaderProps {
   onClose: () => void;
 }
 
-// Маппинг PDF файлов по ID комикса
-const PDF_MAPPING: { [key: number]: any } = {
-  6: require('../../../assets/comics/Comics1.pdf'),
-  7: require('../../../assets/comics/Comics2.pdf'),
-  8: require('../../../assets/comics/Comics3.pdf'),
-  9: require('../../../assets/comics/Comics4.pdf'),
-  10: require('../../../assets/comics/Comics5.pdf'),
+// Маппинг PDF файлов по полю pdf_url из БД (стабильный ключ, не зависит от ID строки)
+const PDF_MAPPING: { [key: string]: any } = {
+  Comics1:  require('../../../assets/comics/Comics1.pdf'),
+  Comics2:  require('../../../assets/comics/Comics2.pdf'),
+  Comics3:  require('../../../assets/comics/Comics3.pdf'),
+  Comics4:  require('../../../assets/comics/Comics4.pdf'),
+  Comics5:  require('../../../assets/comics/Comics5.pdf'),
+  Comics12: require('../../../assets/comics/Comics12.pdf'),
+  Comics13: require('../../../assets/comics/Comics13.pdf'),
+  Comics14: require('../../../assets/comics/Comics14.pdf'),
+  Comics16: require('../../../assets/comics/Comics16.pdf'),
+  Comics18: require('../../../assets/comics/Comics18.pdf'),
+  Comics19: require('../../../assets/comics/Comics19.pdf'),
+  Comics20: require('../../../assets/comics/Comics20.pdf'),
+  Comics21: require('../../../assets/comics/Comics21.pdf'),
+  Comics22: require('../../../assets/comics/Comics22.pdf'),
+  Comics23: require('../../../assets/comics/Comics23.pdf'),
+  Comics24: require('../../../assets/comics/Comics24.pdf'),
+  Comics25: require('../../../assets/comics/Comics25.pdf'),
+  Comics26: require('../../../assets/comics/Comics26.pdf'),
+  Comics28: require('../../../assets/comics/Comics28.pdf'),
+  Comics29: require('../../../assets/comics/Comics29.pdf'),
+  Comics30: require('../../../assets/comics/Comics30.pdf'),
+  Comics31: require('../../../assets/comics/Comics31.pdf'),
+  Comics32: require('../../../assets/comics/Comics32.pdf'),
+  Comics33: require('../../../assets/comics/Comics33.pdf'),
 };
 
 export const ComicReader: React.FC<ComicReaderProps> = ({ visible, comicId, onClose }) => {
@@ -45,75 +61,88 @@ export const ComicReader: React.FC<ComicReaderProps> = ({ visible, comicId, onCl
   const [pdfData, setPdfData] = useState<string | null>(null);
   const [totalPages, setTotalPages] = useState(1);
   const webViewRef = useRef<WebView>(null);
-  
-  const screenWidth = Dimensions.get('window').width;
-  const screenHeight = Dimensions.get('window').height * 0.8;
 
   useEffect(() => {
     if (visible && comicId) {
       loadComicData();
     }
+    if (!visible) {
+      // сброс состояния при закрытии
+      setComic(null);
+      setPages([]);
+      setPdfData(null);
+      setCurrentPage(1);
+      setTotalPages(1);
+    }
   }, [visible, comicId]);
 
-  const getPdfBase64 = async (assetModule: any): Promise<string | null> => {
+  const getPdfBase64FromAsset = async (assetModule: any): Promise<string | null> => {
     try {
       const asset = Asset.fromModule(assetModule);
       await asset.downloadAsync();
-      
-      if (!asset.localUri) {
-        throw new Error('Could not get local URI for asset');
-      }
-
-      console.log('Asset loaded:', asset.localUri);
-
-      const base64 = await FileSystem.readAsStringAsync(asset.localUri, {
+      if (!asset.localUri) throw new Error('No localUri');
+      return await FileSystem.readAsStringAsync(asset.localUri, {
         encoding: FileSystem.EncodingType.Base64,
       });
-
-      return base64;
-    } catch (error) {
-      console.error('Error reading PDF:', error);
+    } catch {
       return null;
     }
   };
 
+  const getPdfBase64FromUrl = async (url: string): Promise<string | null> => {
+    try {
+      const cacheKey = url.replace(/[^a-zA-Z0-9]/g, '_');
+      const cacheUri = `${FileSystem.cacheDirectory}${cacheKey}.pdf`;
+      const info = await FileSystem.getInfoAsync(cacheUri);
+      if (!info.exists) {
+        await FileSystem.downloadAsync(url, cacheUri);
+      }
+      return await FileSystem.readAsStringAsync(cacheUri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+    } catch {
+      return null;
+    }
+  };
+
+  const SERVER_BASE = 'http://127.0.0.1:3001';
+
   const loadComicData = async () => {
     try {
       setLoading(true);
-      
       const comicRes = await api.get(`/comics/${comicId}`);
       const comicData = comicRes.data.data;
       setComic(comicData);
 
-      if (comicId && PDF_MAPPING[comicId]) {
-        try {
-          const assetModule = PDF_MAPPING[comicId];
-          const base64 = await getPdfBase64(assetModule);
-          
-          if (base64) {
-            setPdfData(base64);
-          } else {
-            Alert.alert('Ошибка', 'Не удалось загрузить PDF файл');
-          }
-        } catch (assetError) {
-          console.error('Error loading asset:', assetError);
-          Alert.alert('Ошибка', 'PDF файл не найден или поврежден');
+      const pdfKey = comicData?.pdf_url as string | null;
+      let base64: string | null = null;
+
+      if (pdfKey) {
+        if (pdfKey.startsWith('books/')) {
+          // PDF загружен через админ-панель скачиваем с сервера
+          base64 = await getPdfBase64FromUrl(`${SERVER_BASE}/${pdfKey}`);
+        } else if (PDF_MAPPING[pdfKey]) {
+          // Локальный 
+          base64 = await getPdfBase64FromAsset(PDF_MAPPING[pdfKey]);
         }
+      }
+
+      if (base64) {
+        setPdfData(base64);
       }
 
       const pagesRes = await api.get(`/comics/${comicId}/pages`);
       setPages(pagesRes.data.data.sort((a: any, b: any) => a.page_number - b.page_number));
       setCurrentPage(1);
-      
     } catch (error) {
       console.error('Error loading comic:', error);
-      Alert.alert('Ошибка', 'Не удалось загрузить комикс');
+      Alert.alert('Ошибка', 'Не удалось загрузить книгу');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleNextPage = () => {
+  const goNext = () => {
     if (pdfData) {
       webViewRef.current?.injectJavaScript(`
         if (window.pdfViewer && window.pdfViewer.currentPage < window.pdfViewer.totalPages) {
@@ -127,11 +156,11 @@ export const ComicReader: React.FC<ComicReaderProps> = ({ visible, comicId, onCl
         }
       `);
     } else if (currentPage < pages.length) {
-      setCurrentPage(currentPage + 1);
+      setCurrentPage(p => p + 1);
     }
   };
 
-  const handlePrevPage = () => {
+  const goPrev = () => {
     if (pdfData) {
       webViewRef.current?.injectJavaScript(`
         if (window.pdfViewer && window.pdfViewer.currentPage > 1) {
@@ -145,7 +174,7 @@ export const ComicReader: React.FC<ComicReaderProps> = ({ visible, comicId, onCl
         }
       `);
     } else if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
+      setCurrentPage(p => p - 1);
     }
   };
 
@@ -159,10 +188,12 @@ export const ComicReader: React.FC<ComicReaderProps> = ({ visible, comicId, onCl
         setTotalPages(data.totalPages);
         setCurrentPage(1);
       }
-    } catch (error) {
-      console.error('Error parsing message:', error);
-    }
+    } catch {}
   };
+
+  const total = pdfData ? totalPages : pages.length;
+  const isFirst = currentPage <= 1;
+  const isLast = currentPage >= total;
 
   const renderPdfViewer = () => {
     if (!pdfData) return null;
@@ -172,111 +203,52 @@ export const ComicReader: React.FC<ComicReaderProps> = ({ visible, comicId, onCl
       <html>
         <head>
           <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0">
           <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
           <style>
-            body, html {
-              margin: 0;
-              padding: 0;
-              width: 100%;
-              height: 100%;
-              overflow: hidden;
-              background-color: ${COLORS.black};
-            }
+            * { margin:0; padding:0; box-sizing:border-box; }
+            body, html { width:100%; height:100%; overflow:hidden; background:#f6f6f6; }
             #viewerContainer {
-              width: 100%;
-              height: 100%;
-              overflow: auto;
-              display: flex;
-              justify-content: center;
-              align-items: center;
+              width:100%; height:100%; display:flex;
+              justify-content:center; align-items:center; overflow:auto;
             }
-            #pdf-canvas {
-              max-width: 100%;
-              max-height: 100%;
-              width: auto;
-              height: auto;
-              object-fit: contain;
-            }
-            .loading {
-              position: absolute;
-              top: 50%;
-              left: 50%;
-              transform: translate(-50%, -50%);
-              color: white;
-              font-family: Arial, sans-serif;
-            }
-            .page-info {
-              position: absolute;
-              bottom: 20px;
-              right: 20px;
-              background: rgba(44, 63, 112, 0.9);
-              color: white;
-              padding: 8px 16px;
-              border-radius: 20px;
-              font-family: Arial, sans-serif;
-              font-size: 14px;
-              z-index: 1000;
-            }
+            #pdf-canvas { max-width:100%; max-height:100%; object-fit:contain; }
           </style>
         </head>
         <body>
           <div id="viewerContainer">
             <canvas id="pdf-canvas"></canvas>
           </div>
-          <div class="page-info" id="pageInfo">Страница 1 / 1</div>
-          
           <script>
-            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
-            
+            pdfjsLib.GlobalWorkerOptions.workerSrc =
+              'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
             const url = 'data:application/pdf;base64,${pdfData}';
-            
             window.pdfViewer = {
-              pdfDoc: null,
-              currentPage: 1,
-              totalPages: 1,
-              scale: 1.5,
-              
-              renderPage: function(pageNum) {
+              pdfDoc: null, currentPage: 1, totalPages: 1, scale: 1.5,
+              renderPage: function(num) {
                 const canvas = document.getElementById('pdf-canvas');
-                const context = canvas.getContext('2d');
-                
-                this.pdfDoc.getPage(pageNum).then(function(page) {
-                  const viewport = page.getViewport({ scale: window.pdfViewer.scale });
-                  
-                  canvas.width = viewport.width;
-                  canvas.height = viewport.height;
-                  
-                  const renderContext = {
-                    canvasContext: context,
-                    viewport: viewport
-                  };
-                  
-                  page.render(renderContext);
-                  
-                  document.getElementById('pageInfo').innerHTML = 
-                    'Страница ' + pageNum + ' / ' + window.pdfViewer.totalPages;
+                const ctx = canvas.getContext('2d');
+                this.pdfDoc.getPage(num).then(function(page) {
+                  const vp = page.getViewport({ scale: window.pdfViewer.scale });
+                  canvas.width = vp.width;
+                  canvas.height = vp.height;
+                  page.render({ canvasContext: ctx, viewport: vp });
                 });
               },
-              
               load: function() {
                 pdfjsLib.getDocument(url).promise.then((pdf) => {
                   this.pdfDoc = pdf;
                   this.totalPages = pdf.numPages;
                   this.renderPage(1);
-                  
                   window.ReactNativeWebView.postMessage(JSON.stringify({
-                    type: 'pdfLoaded',
-                    totalPages: this.totalPages
+                    type: 'pdfLoaded', totalPages: this.totalPages
                   }));
-                }).catch(function(error) {
-                  console.error('PDF.js error:', error);
-                  document.getElementById('viewerContainer').innerHTML = 
-                    '<div style="color:white;text-align:center;">Ошибка загрузки PDF</div>';
+                }).catch(function(e) {
+                  document.body.innerHTML =
+                    '<div style="color:#fff;text-align:center;padding:40px;">Ошибка загрузки</div>';
                 });
               }
             };
-            
             window.pdfViewer.load();
           </script>
         </body>
@@ -284,35 +256,31 @@ export const ComicReader: React.FC<ComicReaderProps> = ({ visible, comicId, onCl
     `;
 
     return (
-      <View style={styles.pdfContainer}>
-        <WebView
-          ref={webViewRef}
-          source={{ html: pdfHtml }}
-          style={styles.webview}
-          onLoadStart={() => setLoading(true)}
-          onLoadEnd={() => setLoading(false)}
-          onMessage={handleMessage}
-          javaScriptEnabled={true}
-          domStorageEnabled={true}
-          startInLoadingState
-          renderLoading={() => (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={COLORS.primary} />
-              <Text style={styles.loadingText}>Загрузка PDF...</Text>
-            </View>
-          )}
-        />
-      </View>
+      <WebView
+        ref={webViewRef}
+        source={{ html: pdfHtml }}
+        style={styles.webview}
+        onLoadStart={() => setLoading(true)}
+        onLoadEnd={() => setLoading(false)}
+        onMessage={handleMessage}
+        javaScriptEnabled={true}
+        domStorageEnabled={true}
+        startInLoadingState
+        renderLoading={() => (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+            <Text style={styles.loadingText}>Загрузка PDF...</Text>
+          </View>
+        )}
+      />
     );
   };
 
   const renderImageViewer = () => {
     if (pages.length === 0) return null;
-    
     const currentPageData = pages[currentPage - 1];
-
     return (
-      <ScrollView 
+      <ScrollView
         style={styles.imageScrollView}
         contentContainerStyle={styles.imageScrollContent}
         maximumZoomScale={3.0}
@@ -329,50 +297,6 @@ export const ComicReader: React.FC<ComicReaderProps> = ({ visible, comicId, onCl
     );
   };
 
-  const renderThumbnails = () => {
-    if (pages.length <= 1) return null;
-    
-    return (
-      <View style={styles.thumbnailsContainer}>
-        <FlatList
-          data={pages}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item, index }) => (
-            <TouchableOpacity
-              style={[
-                styles.thumbnailWrapper,
-                currentPage === index + 1 && styles.thumbnailActive,
-              ]}
-              onPress={() => setCurrentPage(index + 1)}
-            >
-              <Image
-                source={{ uri: item.image_url }}
-                style={styles.thumbnail}
-                resizeMode="cover"
-              />
-            </TouchableOpacity>
-          )}
-        />
-      </View>
-    );
-  };
-
-  const renderTextContent = () => {
-    if (pages.length === 0) return null;
-    
-    const currentPageData = pages[currentPage - 1];
-    
-    if (!currentPageData.text_content) return null;
-    
-    return (
-      <View style={styles.textContentContainer}>
-        <Text style={styles.textContent}>{currentPageData.text_content}</Text>
-      </View>
-    );
-  };
-
   if (!visible) return null;
 
   return (
@@ -382,214 +306,193 @@ export const ComicReader: React.FC<ComicReaderProps> = ({ visible, comicId, onCl
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Feather name="x" size={24} color={COLORS.primary} />
-          </TouchableOpacity>
-          <Text style={styles.title} numberOfLines={1}>
-            {comic?.title || 'Загрузка...'} 
-            {pdfData && ` — стр. ${currentPage}/${totalPages}`}
-            {!pdfData && pages.length > 0 && ` — стр. ${currentPage}/${pages.length}`}
-          </Text>
-          <View style={styles.placeholder} />
+      <View style={styles.container}>
+        {/* Шапка */}
+        <SafeAreaView edges={['top']} style={styles.headerSafe}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Feather name="x" size={22} color={COLORS.primary} />
+            </TouchableOpacity>
+            <Text style={styles.title} numberOfLines={1}>
+              {comic?.title || 'Загрузка...'}
+            </Text>
+            <View style={styles.pageCounter}>
+              <Text style={styles.pageCounterText}>{currentPage}/{total || 1}</Text>
+            </View>
+          </View>
+        </SafeAreaView>
+
+        {/* Контент */}
+        <View style={styles.readerArea}>
+          {loading && !comic ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={COLORS.primary} />
+              <Text style={styles.loadingText}>Загрузка...</Text>
+            </View>
+          ) : (
+            pdfData ? renderPdfViewer() : renderImageViewer()
+          )}
         </View>
 
-        {loading && !comic ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={COLORS.primary} />
-          </View>
-        ) : (
-          <>
-            <View style={styles.readerArea}>
-              {pdfData ? renderPdfViewer() : renderImageViewer()}
-              
-              {/* Навигационные кнопки без затемнения */}
-              <View style={styles.navigationOverlay}>
-                <TouchableOpacity
-                  style={[
-                    styles.navButton,
-                    (pdfData ? currentPage === 1 : currentPage === 1) && styles.navButtonDisabled
-                  ]}
-                  onPress={handlePrevPage}
-                  disabled={pdfData ? currentPage === 1 : currentPage === 1}
-                >
-                  <Feather
-                    name="chevron-left"
-                    size={40}
-                    color={COLORS.white}
-                  />
-                </TouchableOpacity>
-                
-                <TouchableOpacity
-                  style={[
-                    styles.navButton,
-                    (pdfData ? currentPage === totalPages : currentPage === pages.length) && styles.navButtonDisabled
-                  ]}
-                  onPress={handleNextPage}
-                  disabled={pdfData ? currentPage === totalPages : currentPage === pages.length}
-                >
-                  <Feather
-                    name="chevron-right"
-                    size={40}
-                    color={COLORS.white}
-                  />
-                </TouchableOpacity>
+        {/* Нижняя панель навигации */}
+        <SafeAreaView edges={['bottom']} style={styles.navBarSafe}>
+          <View style={styles.navBar}>
+            <TouchableOpacity
+              style={[styles.navBtn, isFirst && styles.navBtnDisabled]}
+              onPress={goPrev}
+              disabled={isFirst}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Feather name="chevron-left" size={28} color={isFirst ? COLORS.border : COLORS.primary} />
+            </TouchableOpacity>
+
+            {/* Точки для image-режима */}
+            {!pdfData && pages.length > 1 && pages.length <= 12 ? (
+              <View style={styles.dotRow}>
+                {pages.map((_, i) => (
+                  <TouchableOpacity key={i} onPress={() => setCurrentPage(i + 1)}>
+                    <View style={[styles.dot, i + 1 === currentPage && styles.dotActive]} />
+                  </TouchableOpacity>
+                ))}
               </View>
-            </View>
+            ) : (
+              <Text style={styles.navPageLabel}>{currentPage} / {total || 1}</Text>
+            )}
 
-            {!pdfData && renderTextContent()}
-            {!pdfData && renderThumbnails()}
-
-            <View style={styles.footer}>
-              <Button
-                title="Закрыть"
-                onPress={onClose}
-                variant="primary"
-                size="large"
-                style={styles.closeFooterButton}
-              />
-            </View>
-          </>
-        )}
-      </SafeAreaView>
+            <TouchableOpacity
+              style={[styles.navBtn, isLast && styles.navBtnDisabled]}
+              onPress={goNext}
+              disabled={isLast}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Feather name="chevron-right" size={28} color={isLast ? COLORS.border : COLORS.primary} />
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </View>
     </Modal>
   );
 };
+
+const { width, height } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
+  headerSafe: {
     backgroundColor: COLORS.white,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
-    ...SHADOWS.small,
   },
-  closeButton: {
-    padding: SPACING.sm,
-    width: 44,
-    height: 44,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+  },
+  closeBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: COLORS.secondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   title: {
-    ...TYPOGRAPHY.h4,
-    color: COLORS.primary,
     flex: 1,
+    ...TYPOGRAPHY.body1,
+    color: COLORS.primary,
+    fontWeight: '600',
     textAlign: 'center',
+    marginHorizontal: SPACING.sm,
   },
-  placeholder: {
-    width: 44,
-    height: 44,
+  pageCounter: {
+    minWidth: 38,
+    alignItems: 'flex-end',
+  },
+  pageCounterText: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textMuted,
+    fontSize: 12,
   },
   readerArea: {
     flex: 1,
-    backgroundColor: COLORS.black,
-    position: 'relative',
-  },
-  pdfContainer: {
-    flex: 1,
-    backgroundColor: COLORS.black,
+    backgroundColor: COLORS.background,
   },
   webview: {
     flex: 1,
-    backgroundColor: COLORS.black,
+    backgroundColor: COLORS.background,
   },
   imageScrollView: {
     flex: 1,
-    backgroundColor: COLORS.black,
+    backgroundColor: COLORS.background,
   },
   imageScrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    minHeight: height * 0.7,
   },
   pageImage: {
-    width: Dimensions.get('window').width,
-    height: Dimensions.get('window').height * 0.8,
+    width: width,
+    height: height * 0.82,
     resizeMode: 'contain',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.black,
+    gap: SPACING.md,
+    backgroundColor: COLORS.background,
   },
   loadingText: {
     ...TYPOGRAPHY.body2,
-    color: COLORS.white,
-    marginTop: SPACING.md,
+    color: COLORS.textLight,
   },
-  navigationOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+  navBarSafe: {
+    backgroundColor: COLORS.white,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  navBar: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: SPACING.md,
   },
-  navButton: {
-    width: 60,
-    height: '100%',
+  navBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.secondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  navButtonDisabled: {
-    opacity: 0.3,
+  navBtnDisabled: {
+    backgroundColor: COLORS.background,
   },
-  textContentContainer: {
-    backgroundColor: COLORS.white,
-    padding: SPACING.lg,
-    margin: SPACING.md,
-    borderRadius: BORDER_RADIUS.lg,
-    ...SHADOWS.small,
-  },
-  textContent: {
+  navPageLabel: {
     ...TYPOGRAPHY.body1,
-    color: COLORS.text,
-    lineHeight: 24,
+    color: COLORS.primary,
+    fontWeight: '600',
   },
-  thumbnailsContainer: {
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.md,
-    maxHeight: 100,
-    backgroundColor: COLORS.white,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+  dotRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
-  thumbnailWrapper: {
-    width: 60,
-    height: 80,
-    marginRight: SPACING.sm,
-    borderRadius: BORDER_RADIUS.sm,
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: 'transparent',
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: COLORS.border,
   },
-  thumbnailActive: {
-    borderColor: COLORS.primary,
-  },
-  thumbnail: {
-    width: '100%',
-    height: '100%',
-  },
-  footer: {
-    paddingHorizontal: SPACING.xl,
-    paddingVertical: SPACING.md,
-    backgroundColor: COLORS.white,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-  },
-  closeFooterButton: {
-    width: '100%',
+  dotActive: {
+    backgroundColor: COLORS.primary,
+    width: 20,
+    borderRadius: 3.5,
   },
 });

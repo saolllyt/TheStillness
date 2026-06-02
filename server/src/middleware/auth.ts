@@ -14,11 +14,11 @@ const JWT_EXPIRES_IN: string = process.env.JWT_EXPIRES_IN || '7d';
 
 // Жесткая проверка
 if (!JWT_SECRET) {
-  throw new Error('❌ JWT_SECRET не определен в .env файле!');
+  throw new Error(' JWT_SECRET не определен в .env файле!');
 }
 
 if (JWT_SECRET.length < 10) {
-  console.warn('⚠️ JWT_SECRET слишком короткий. Рекомендуется минимум 32 символа');
+  console.warn(' JWT_SECRET слишком короткий. Рекомендуется минимум 32 символа');
 }
 
 export const generateToken = (userId: number): string => {

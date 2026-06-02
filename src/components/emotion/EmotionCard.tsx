@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
 
 interface EmotionCardProps {
@@ -10,11 +11,13 @@ interface EmotionCardProps {
     color: string | null;
   };
   selected: boolean;
-  intensity?: number;
+  intensity?: number;  // 1–10
   onSelect: () => void;
   onIntensityChange?: (intensity: number) => void;
   showIntensity?: boolean;
 }
+
+const LEVELS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 export const EmotionCard: React.FC<EmotionCardProps> = ({
   emotion,
@@ -22,44 +25,60 @@ export const EmotionCard: React.FC<EmotionCardProps> = ({
   intensity = 5,
   onSelect,
   onIntensityChange,
-  showIntensity = false,
 }) => {
-  const emotionColor = emotion.color || COLORS.secondary;
-  
+  const emotionColor = emotion.color || COLORS.primary;
+
   return (
     <TouchableOpacity
-      style={[
-        styles.container,
-        selected && styles.selectedContainer,
-        { borderColor: selected ? COLORS.primary : 'transparent' }
-      ]}
+      style={[styles.container, selected && styles.selectedContainer]}
       onPress={onSelect}
-      activeOpacity={0.7}
+      activeOpacity={0.75}
     >
-      <View style={[styles.emojiContainer, { backgroundColor: emotionColor + '20' }]}>
-        <Text style={styles.emoji}>{emotion.emoji || '😊'}</Text>
-      </View>
-      
-      <Text style={[styles.name, selected && styles.selectedName]}>
-        {emotion.name}
-      </Text>
-      
-      {showIntensity && selected && (
-        <View style={styles.intensityContainer}>
-          <Text style={styles.intensityLabel}>Интенсивность: {intensity}/10</Text>
-          <View style={styles.sliderContainer}>
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((value) => (
-              <TouchableOpacity
-                key={value}
-                style={[
-                  styles.intensityDot,
-                  value <= intensity && styles.intensityDotActive,
-                  { backgroundColor: value <= intensity ? COLORS.primary : COLORS.border }
-                ]}
-                onPress={() => onIntensityChange?.(value)}
-              />
-            ))}
+      {/* Шапка */}
+      <View style={styles.headerRow}>
+        <View style={[styles.emojiWrap, { backgroundColor: emotionColor + '22' }]}>
+          <Text style={styles.emoji}>{emotion.emoji || '😊'}</Text>
+        </View>
+        <Text style={[styles.name, selected && styles.selectedName]} numberOfLines={1}>
+          {emotion.name}
+        </Text>
+        {selected && (
+          <View style={[styles.checkCircle, { backgroundColor: emotionColor }]}>
+            <Feather name="check" size={14} color={COLORS.white} />
           </View>
+        )}
+      </View>
+
+      {/* Шкала интенсивности  */}
+      <View style={styles.intensityRow}>
+        {LEVELS.map((level) => {
+          const filled = selected && level <= intensity;
+          return (
+            <TouchableOpacity
+              key={level}
+              onPress={() => selected && onIntensityChange?.(level)}
+              disabled={!selected}
+              style={[
+                styles.intensityBlock,
+                {
+                  backgroundColor: emotionColor,
+                  opacity: filled ? 1 : (selected ? 0.18 : 0.1),
+                },
+              ]}
+              activeOpacity={0.65}
+            />
+          );
+        })}
+      </View>
+
+      {/* Подписи и текущий уровень */}
+      {selected && (
+        <View style={styles.intensityMeta}>
+          <Text style={styles.labelSmall}>Слабо</Text>
+          <Text style={[styles.labelLevel, { color: emotionColor }]}>
+            {intensity} / 10
+          </Text>
+          <Text style={styles.labelSmall}>Сильно</Text>
         </View>
       )}
     </TouchableOpacity>
@@ -71,55 +90,74 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.md,
-    marginBottom: SPACING.sm,
     borderWidth: 2,
+    borderColor: 'transparent',
     ...SHADOWS.small,
   },
   selectedContainer: {
     borderColor: COLORS.primary,
-    backgroundColor: COLORS.white,
+    backgroundColor: '#f0f6fb',
   },
-  emojiContainer: {
+
+  // Шапка
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  emojiWrap: {
     width: 48,
     height: 48,
     borderRadius: BORDER_RADIUS.round,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: SPACING.sm,
   },
-  emoji: {
-    fontSize: 24,
-  },
+  emoji: { fontSize: 24 },
   name: {
+    flex: 1,
     ...TYPOGRAPHY.body1,
     color: COLORS.text,
     fontWeight: '500',
-    marginBottom: SPACING.xs,
   },
   selectedName: {
     color: COLORS.primary,
-    fontWeight: '600',
+    fontWeight: '700',
   },
-  intensityContainer: {
+  checkCircle: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // Шкала интенсивности
+  intensityRow: {
+    flexDirection: 'row',
+    gap: 3,
     marginTop: SPACING.sm,
   },
-  intensityLabel: {
-    ...TYPOGRAPHY.caption,
-    color: COLORS.textLight,
-    marginBottom: SPACING.xs,
+  intensityBlock: {
+    flex: 1,
+    height: 26,
+    borderRadius: 5,
   },
-  sliderContainer: {
+
+  // Подписи
+  intensityMeta: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: 4,
   },
-  intensityDot: {
-    width: 24,
-    height: 24,
-    borderRadius: BORDER_RADIUS.round,
-    backgroundColor: COLORS.border,
+  labelSmall: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textMuted,
+    fontSize: 10,
   },
-  intensityDotActive: {
-    backgroundColor: COLORS.primary,
+  labelLevel: {
+    ...TYPOGRAPHY.caption,
+    fontWeight: '700',
+    fontSize: 11,
   },
 });

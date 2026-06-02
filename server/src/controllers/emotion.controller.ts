@@ -21,31 +21,30 @@ export class EmotionController {
 
   // Создание записи в трекере
   static async createEntry(req: Request, res: Response) {
-    try {
-      const userId = (req as any).userId;
-      const { emotion_type_id, intensity, note, created_date } = req.body;
+  try {
+    const userId = (req as any).userId;
+    const { emotion_type_id, intensity, created_date } = req.body; // убрали note
 
-      const entry = await EmotionModel.createEntry({
-        user_id: userId,
-        emotion_type_id,
-        intensity,
-        note,
-        created_date: created_date ? new Date(created_date) : undefined
-      });
+    const entry = await EmotionModel.createEntry({
+      user_id: userId,
+      emotion_type_id,
+      intensity,
+      created_date: created_date ? new Date(created_date) : undefined
+    });
 
-      res.status(201).json({
-        success: true,
-        message: 'Запись создана',
-        data: entry
-      });
-    } catch (error) {
-      console.error('Create entry error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Ошибка при создании записи'
-      });
-    }
+    res.status(201).json({
+      success: true,
+      message: 'Запись создана',
+      data: entry
+    });
+  } catch (error) {
+    console.error('Create entry error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка при создании записи'
+    });
   }
+}
 
   // Получение записей за дату
   static async getEntriesByDate(req: Request, res: Response) {
@@ -60,7 +59,6 @@ export class EmotionController {
         });
       }
 
-      // Проверяем, что строка, а не массив
       if (Array.isArray(dateParam)) {
         return res.status(400).json({
           success: false,
@@ -97,7 +95,6 @@ export class EmotionController {
         });
       }
 
-      // Проверяем, что параметры строки, а не массивы
       if (Array.isArray(startDateParam) || Array.isArray(endDateParam)) {
         return res.status(400).json({
           success: false,
@@ -137,7 +134,6 @@ export class EmotionController {
         });
       }
 
-      // Проверяем, что строка, а не массив
       if (Array.isArray(idParam)) {
         return res.status(400).json({
           success: false,

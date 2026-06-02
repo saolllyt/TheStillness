@@ -42,30 +42,29 @@ export class TrackerController {
 
   // Создание записи
   static async createEntry(req: Request, res: Response) {
-    try {
-      const userId = (req as any).userId;
-      const { emotion_type_id, intensity, note } = req.body;
+  try {
+    const userId = (req as any).userId;
+    const { emotion_type_id, intensity } = req.body; // убрали note
 
-      const entry = await EmotionModel.createEntry({
-        user_id: userId,
-        emotion_type_id,
-        intensity,
-        note
-      });
+    const entry = await EmotionModel.createEntry({
+      user_id: userId,
+      emotion_type_id,
+      intensity,
+    });
 
-      res.status(201).json({
-        success: true,
-        message: 'Запись создана',
-        data: entry
-      });
-    } catch (error) {
-      console.error('Create entry error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Ошибка при создании записи'
-      });
-    }
+    res.status(201).json({
+      success: true,
+      message: 'Запись создана',
+      data: entry
+    });
+  } catch (error) {
+    console.error('Create entry error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка при создании записи'
+    });
   }
+}
 
   // Обновление записи
   static async updateEntry(req: Request, res: Response) {
@@ -97,7 +96,7 @@ export class TrackerController {
 
       const { intensity, note } = req.body;
 
-      const updatedEntry = await EmotionModel.updateEntry(id, userId, { intensity, note });
+      const updatedEntry = await EmotionModel.updateEntry(id, userId, { intensity});
 
       if (!updatedEntry) {
         return res.status(404).json({

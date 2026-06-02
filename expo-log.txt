@@ -1,0 +1,7 @@
+Starting Expo... 
+Networking has been disabled
+Starting project at C:\Users\mvant\TheStillness
+Starting Metro Bundler
+Skipping dependency validation in offline mode
+Waiting on http://localhost:8081
+Logs for your project will appear below.

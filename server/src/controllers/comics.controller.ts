@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { ComicModel } from '../models/comic.model';
 
 export class ComicsController {
-  // Получение всех комиксов
+  // Получение всех книг
   static async getAllComics(req: Request, res: Response) {
     try {
       const comics = await ComicModel.getAll();
@@ -20,7 +20,7 @@ export class ComicsController {
     }
   }
 
-  // Получение комикса по ID
+  // Получение книги по ID
   static async getComicById(req: Request, res: Response) {
     try {
       const idParam = req.params.id;
@@ -69,7 +69,7 @@ export class ComicsController {
     }
   }
 
-  // Получение страниц комикса
+  // Получение страниц книги
   static async getComicPages(req: Request, res: Response) {
     try {
       const comicIdParam = req.params.id;

@@ -1,39 +1,43 @@
 
+
 export const EMOTION_EMOJIS: { [key: string]: string } = {
-  'Радость': '😊',
   'Спокойствие': '😌',
   'Тревога': '😰',
+  'Радость': '😊',
   'Грусть': '😔',
-  'Страх': '😨',
   'Злость': '😤',
-  'Усталость': '😩',
+  'Страх': '😨',
+  'Удивление': '😮',
+  'Отвращение': '🤢',
   'Надежда': '🌟',
   'Благодарность': '🙏',
-  'Вдохновение': '✨',
 };
 
 export const EMOTION_COLORS: { [key: string]: string } = {
-  'Радость': '#FFD700',
-  'Спокойствие': '#A7C4B5',
-  'Тревога': '#E69B8C',
-  'Грусть': '#89B6C9',
-  'Страх': '#B05E5E',
-  'Злость': '#E67A6B',
-  'Усталость': '#8D9AA8',
-  'Надежда': '#F0CF85',
-  'Благодарность': '#4A7A6C',
-  'Вдохновение': '#C8A2C8',
+  'Спокойствие': '#5D9B9B',
+  'Тревога': '#744ebb',
+  'Радость': '#FFF5BA',
+  'Грусть': '#8faeda',
+  'Злость': '#de185a',
+  'Страх': '#5f3ebf',
+  'Удивление': '#fba27f',
+  'Отвращение': '#939597',
+  'Надежда': '#f4cccc',
+  'Благодарность': '#8fceb3',
 };
 
 export const EMOTIONS = [
-  { id: 1, name: 'Радость', emoji: '😊', color: '#FFD700' },
-  { id: 2, name: 'Спокойствие', emoji: '😌', color: '#A7C4B5' },
-  { id: 3, name: 'Тревога', emoji: '😰', color: '#E69B8C' },
-  { id: 4, name: 'Грусть', emoji: '😔', color: '#89B6C9' },
-  { id: 5, name: 'Страх', emoji: '😨', color: '#B05E5E' },
-  { id: 6, name: 'Злость', emoji: '😤', color: '#E67A6B' },
-  { id: 7, name: 'Усталость', emoji: '😩', color: '#8D9AA8' },
-  { id: 8, name: 'Надежда', emoji: '🌟', color: '#F0CF85' },
-  { id: 9, name: 'Благодарность', emoji: '🙏', color: '#4A7A6C' },
-  { id: 10, name: 'Вдохновение', emoji: '✨', color: '#C8A2C8' },
+  { id: 1,  name: 'Спокойствие',  emoji: '😌', color: '#5D9B9B' },
+  { id: 2,  name: 'Тревога',      emoji: '😰', color: '#744ebb' },
+  { id: 3,  name: 'Радость',      emoji: '😊', color: '#FFF5BA' },
+  { id: 4,  name: 'Грусть',       emoji: '😔', color: '#8faeda' },
+  { id: 5,  name: 'Злость',       emoji: '😤', color: '#de185a' },
+  { id: 6,  name: 'Страх',        emoji: '😨', color: '#5f3ebf' },
+  { id: 7,  name: 'Удивление',    emoji: '😮', color: '#fba27f' },
+  { id: 8,  name: 'Отвращение',   emoji: '🤢', color: '#939597' },
+  { id: 9,  name: 'Надежда',      emoji: '🌟', color: '#f4cccc' },
+  { id: 10, name: 'Благодарность', emoji: '🙏', color: '#8fceb3' },
 ];
+
+// Позитивные эмоции 
+export const GOOD_EMOTION_IDS = [1, 3, 9, 10];

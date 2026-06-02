@@ -1,14 +1,9 @@
 import React, { useState } from 'react';
 import {
-  View,
-  TextInput,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  TextInputProps,
-  ViewStyle,
-  TextStyle,
+  View, TextInput, Text, StyleSheet,
+  TouchableOpacity, TextInputProps, ViewStyle, TextStyle,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../../constants/theme';
 
 interface InputProps extends TextInputProps {
@@ -34,18 +29,12 @@ export const Input: React.FC<InputProps> = ({
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const isSecure = secureTextEntry ? !isPasswordVisible : false;
 
-  const togglePasswordVisibility = () => {
-    if (secureTextEntry) {
-      setIsPasswordVisible(!isPasswordVisible);
-    }
-  };
-
   return (
     <View style={[styles.container, containerStyle]}>
       {label && <Text style={styles.label}>{label}</Text>}
       <View style={[styles.inputContainer, error ? styles.inputError : null]}>
         {leftIcon && <View style={styles.leftIcon}>{leftIcon}</View>}
-        
+
         <TextInput
           style={[
             styles.input,
@@ -57,19 +46,22 @@ export const Input: React.FC<InputProps> = ({
           secureTextEntry={isSecure}
           {...props}
         />
-        
+
         {rightIcon && !secureTextEntry && (
           <View style={styles.rightIcon}>{rightIcon}</View>
         )}
-        
+
         {secureTextEntry && (
           <TouchableOpacity
-            onPress={togglePasswordVisibility}
+            onPress={() => setIsPasswordVisible(!isPasswordVisible)}
             style={styles.eyeButton}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Text style={styles.eyeText}>
-              {isPasswordVisible ? '👁️' : '👁️‍🗨️'}
-            </Text>
+            <Feather
+              name={isPasswordVisible ? 'eye' : 'eye-off'}
+              size={20}
+              color={COLORS.textMuted}
+            />
           </TouchableOpacity>
         )}
       </View>
@@ -105,12 +97,8 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     paddingVertical: SPACING.sm,
   },
-  inputWithLeftIcon: {
-    marginLeft: SPACING.sm,
-  },
-  inputWithRightIcon: {
-    marginRight: SPACING.sm,
-  },
+  inputWithLeftIcon: { marginLeft: SPACING.sm },
+  inputWithRightIcon: { marginRight: SPACING.sm },
   inputError: {
     borderColor: COLORS.error,
     borderWidth: 1,
@@ -120,17 +108,12 @@ const styles = StyleSheet.create({
     color: COLORS.error,
     marginTop: SPACING.xs,
   },
-  leftIcon: {
-    marginRight: SPACING.sm,
-  },
-  rightIcon: {
-    marginLeft: SPACING.sm,
-  },
+  leftIcon: { marginRight: SPACING.sm },
+  rightIcon: { marginLeft: SPACING.sm },
   eyeButton: {
-    padding: SPACING.xs,
-    marginLeft: SPACING.xs,
-  },
-  eyeText: {
-    fontSize: 20,
+    paddingLeft: SPACING.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 48,
   },
 });

@@ -3,15 +3,12 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { AuthNavigator } from './AuthNavigator';
 import { MainNavigator } from './MainNavigator';
+import { PsychologistNavigator } from './PsychologistNavigator';
+import { AdminNavigator } from './AdminNavigator';
 import { useAuth } from '../context/AuthContext';
 import { COLORS } from '../constants/theme';
 
-export type RootStackParamList = {
-  Auth: undefined;
-  Main: undefined;
-};
-
-const Stack = createStackNavigator<RootStackParamList>();
+const Stack = createStackNavigator();
 
 export const RootNavigator = () => {
   const { user, loading } = useAuth();
@@ -26,10 +23,14 @@ export const RootNavigator = () => {
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {user ? (
-        <Stack.Screen name="Main" component={MainNavigator} />
-      ) : (
+      {!user ? (
         <Stack.Screen name="Auth" component={AuthNavigator} />
+      ) : user.role === 'admin' ? (
+        <Stack.Screen name="Admin" component={AdminNavigator} />
+      ) : user.role === 'psychologist' ? (
+        <Stack.Screen name="Psychologist" component={PsychologistNavigator} />
+      ) : (
+        <Stack.Screen name="Main" component={MainNavigator} />
       )}
     </Stack.Navigator>
   );

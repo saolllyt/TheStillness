@@ -31,14 +31,14 @@ export class ComicModel {
     return result.rows;
   }
 
-  // Получение комикса по ID
+  // Получение книги по ID
   static async findById(id: number): Promise<Comic | null> {
     const query = 'SELECT * FROM comics WHERE id = $1 AND is_active = true';
     const result = await pool.query(query, [id]);
     return result.rows[0] || null;
   }
 
-  // Получение страниц комикса для будущего функционала
+  // Получение страниц книги для будущего функционала
   static async getPages(comic_id: number): Promise<ComicPage[]> {
     const query = `
       SELECT * FROM comic_pages 

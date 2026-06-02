@@ -1,159 +1,203 @@
-import * as FileSystem from 'expo-file-system';
+import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import { printToFileAsync } from 'expo-print';
+import { Alert, Platform } from 'react-native';
+import * as FileSystem from 'expo-file-system/legacy';
 
-export interface ReportData {
-  startDate: string;
-  endDate: string;
-  emotions?: any[];
-  diary?: any[];
-  summary: {
-    totalEmotions?: number;
-    averageIntensity?: number;
-    totalDiary?: number;
-    goodEmotions?: number;
-    badEmotions?: number;
-  };
-}
-
-export const generatePDF = async (reportData: ReportData, userName: string): Promise<string> => {
-  try {
-    const html = generateReportHTML(reportData, userName);
-    
-    const { uri } = await printToFileAsync({
-      html,
-      base64: false
-    });
-
-    console.log('PDF generated at:', uri);
-    return uri;
-  } catch (error) {
-    console.error('Error generating PDF:', error);
-    throw error;
-  }
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
-export const sharePDF = async (fileUri: string, fileName: string) => {
+const formatDateTime = (dateStr: string) => {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr);
+  return d.toLocaleString('ru-RU', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+};
+
+const EMOTION_NAMES: { [key: number]: string } = {
+  1: 'Радость', 2: 'Спокойствие', 3: 'Тревога', 4: 'Грусть',
+  5: 'Страх', 6: 'Злость', 7: 'Усталость', 8: 'Надежда',
+  9: 'Благодарность', 10: 'Вдохновение',
+};
+
+export const generatePDF = async (reportData: any, userName: string): Promise<string> => {
+  const { startDate, endDate, summary, emotions = [], diary = [] } = reportData;
+
+  const emotionRows = emotions.slice(0, 50).map((e: any) => `
+    <tr>
+      <td>${formatDateTime(e.created_at || e.created_date)}</td>
+      <td>${EMOTION_NAMES[e.emotion_type_id] || e.emotion_type_id}</td>
+      <td>${e.intensity || '—'}</td>
+    </tr>
+  `).join('');
+
+  const diaryRows = diary.slice(0, 30).map((d: any) => `
+    <tr>
+      <td>${formatDateTime(d.created_at)}</td>
+      <td>${d.situation || '—'}</td>
+      <td>${d.emotion_name || '—'}</td>
+      <td>${d.behavior || '—'}</td>
+    </tr>
+  `).join('');
+
+  const html = `
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Times New Roman', serif; font-size: 12pt; color: #1a1a2e; background: #fff; padding: 40px; }
+    .page-header { border-bottom: 2px solid #2C3F70; padding-bottom: 16px; margin-bottom: 24px; }
+    .org-name { font-size: 10pt; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .doc-title { font-size: 18pt; font-weight: bold; color: #2C3F70; margin-bottom: 4px; }
+    .doc-subtitle { font-size: 10pt; color: #666; }
+    .meta-block { background: #f5f7fa; border: 1px solid #dce3f0; border-radius: 4px; padding: 12px 16px; margin-bottom: 24px; font-size: 11pt; display: flex; gap: 24px; }
+    .meta-item { flex: 1; }
+    .meta-label { color: #666; font-size: 9pt; text-transform: uppercase; letter-spacing: 0.5px; }
+    .meta-value { color: #1a1a2e; font-weight: bold; margin-top: 2px; }
+    .section { margin-bottom: 28px; }
+    .section-title { font-size: 13pt; font-weight: bold; color: #2C3F70; border-bottom: 1px solid #dce3f0; padding-bottom: 6px; margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .summary-grid { display: flex; gap: 12px; margin-bottom: 16px; }
+    .summary-card { flex: 1; border: 1px solid #dce3f0; border-radius: 4px; padding: 12px; text-align: center; }
+    .summary-number { font-size: 22pt; font-weight: bold; color: #2C3F70; }
+    .summary-label { font-size: 9pt; color: #666; margin-top: 4px; }
+    table { width: 100%; border-collapse: collapse; font-size: 10pt; }
+    th { background: #2C3F70; color: white; padding: 8px 10px; text-align: left; font-weight: normal; text-transform: uppercase; font-size: 9pt; letter-spacing: 0.5px; }
+    td { padding: 7px 10px; border-bottom: 1px solid #eef0f5; color: #333; }
+    tr:nth-child(even) td { background: #f9fafc; }
+    .no-data { text-align: center; color: #999; padding: 20px; font-style: italic; }
+    .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #dce3f0; display: flex; justify-content: space-between; font-size: 9pt; color: #999; }
+    .avg-badge { display: inline-block; background: #eef2ff; color: #2C3F70; padding: 2px 8px; border-radius: 3px; font-size: 10pt; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="page-header">
+    <div class="org-name">TheStillness — Система отслеживания эмоций</div>
+    <div class="doc-title">Психологический отчёт</div>
+    <div class="doc-subtitle">Конфиденциальный документ</div>
+  </div>
+  <div class="meta-block">
+    <div class="meta-item">
+      <div class="meta-label">Пользователь</div>
+      <div class="meta-value">${userName}</div>
+    </div>
+    <div class="meta-item">
+      <div class="meta-label">Период</div>
+      <div class="meta-value">${formatDate(startDate)} — ${formatDate(endDate)}</div>
+    </div>
+    <div class="meta-item">
+      <div class="meta-label">Дата формирования</div>
+      <div class="meta-value">${new Date().toLocaleDateString('ru-RU')}</div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-title">Сводная статистика</div>
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="summary-number">${summary?.totalEmotions ?? 0}</div>
+        <div class="summary-label">Записей эмоций</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-number">${summary?.totalDiary ?? 0}</div>
+        <div class="summary-label">Записей дневника</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-number">${summary?.averageIntensity ? Number(summary.averageIntensity).toFixed(1) : '—'}</div>
+        <div class="summary-label">Средняя интенсивность</div>
+      </div>
+    </div>
+    <table>
+      <tr><th>Показатель</th><th>Значение</th></tr>
+      <tr><td>Позитивные эмоции</td><td><span class="avg-badge">${summary?.goodEmotions ?? 0}</span></td></tr>
+      <tr><td>Негативные эмоции</td><td><span class="avg-badge">${summary?.badEmotions ?? 0}</span></td></tr>
+      <tr><td>Доля позитивных</td><td><span class="avg-badge">${
+        summary?.totalEmotions > 0
+          ? Math.round((summary.goodEmotions / summary.totalEmotions) * 100) + '%'
+          : '—'
+      }</span></td></tr>
+    </table>
+  </div>
+  ${emotions.length > 0 ? `
+  <div class="section">
+    <div class="section-title">Журнал эмоций</div>
+    <table>
+      <thead><tr><th>Дата и время</th><th>Эмоция</th><th>Интенсивность (1-10)</th></tr></thead>
+      <tbody>${emotionRows || `<tr><td colspan="3" class="no-data">Нет записей</td></tr>`}</tbody>
+    </table>
+    ${emotions.length > 50 ? `<p style="font-size:9pt;color:#999;margin-top:8px;">Показаны первые 50 из ${emotions.length} записей.</p>` : ''}
+  </div>` : ''}
+  ${diary.length > 0 ? `
+  <div class="section">
+    <div class="section-title">Дневник СМЭР</div>
+    <table>
+      <thead><tr><th>Дата</th><th>Ситуация</th><th>Эмоция</th><th>Поведение</th></tr></thead>
+      <tbody>${diaryRows || `<tr><td colspan="4" class="no-data">Нет записей</td></tr>`}</tbody>
+    </table>
+    ${diary.length > 30 ? `<p style="font-size:9pt;color:#999;margin-top:8px;">Показаны первые 30 из ${diary.length} записей.</p>` : ''}
+  </div>` : ''}
+  <div class="footer">
+    <span>Сформировано системой TheStillness</span>
+    <span>${new Date().toLocaleString('ru-RU')}</span>
+  </div>
+</body>
+</html>`;
+
+  const { uri } = await Print.printToFileAsync({ html, base64: false });
+  return uri;
+};
+
+export const sharePDF = async (
+  uri: string,
+  fileName: string,
+  onOpen?: () => void
+): Promise<void> => {
   try {
+    const permanentUri = `${FileSystem.documentDirectory}${fileName}.pdf`;
+    await FileSystem.copyAsync({ from: uri, to: permanentUri });
+
     const isAvailable = await Sharing.isAvailableAsync();
-    
-    if (!isAvailable) {
-      throw new Error('Sharing is not available on this device');
-    }
 
-    await Sharing.shareAsync(fileUri, {
-      mimeType: 'application/pdf',
-      dialogTitle: 'Сохранить отчет',
-      UTI: '.pdf'
-    });
-
-    return true;
+    Alert.alert(
+      'Отчёт готов',
+      'Выберите действие:',
+      [
+        {
+          text: 'Открыть',
+          onPress: () => {
+            if (onOpen) {
+              onOpen();
+            }
+          }
+        },
+        {
+          text: 'Поделиться',
+          onPress: async () => {
+            if (isAvailable) {
+              await Sharing.shareAsync(permanentUri, {
+                mimeType: 'application/pdf',
+                dialogTitle: 'Поделиться отчётом',
+                UTI: 'com.adobe.pdf',
+              });
+            }
+          }
+        },
+        { text: 'Закрыть', style: 'cancel' }
+      ]
+    );
   } catch (error) {
-    console.error('Error sharing PDF:', error);
-    throw error;
+    console.error('sharePDF error:', error);
+    const isAvailable = await Sharing.isAvailableAsync();
+    if (isAvailable) {
+      await Sharing.shareAsync(uri, {
+        mimeType: 'application/pdf',
+        dialogTitle: 'Отчёт TheStillness',
+        UTI: 'com.adobe.pdf',
+      });
+    }
   }
-};
-
-const GOOD_EMOTIONS = [1, 3, 9, 10]; 
-const BAD_EMOTIONS = [2, 4, 5, 6, 7, 8];    
-
-const generateReportHTML = (data: ReportData, userName: string): string => {
-  const emotionsHtml = data.emotions && data.emotions.length > 0 ? `
-    <div class="section">
-      <h2>Эмоции за период</h2>
-      <p>Всего записей: ${data.summary.totalEmotions || 0}</p>
-      <p>Средняя интенсивность: ${data.summary.averageIntensity?.toFixed(1) || 0}/10</p>
-      <p>Хороших эмоций: ${data.summary.goodEmotions || 0}</p>
-      <p>Плохих эмоций: ${data.summary.badEmotions || 0}</p>
-      
-      <table>
-        <thead>
-          <tr>
-            <th>Дата</th>
-            <th>Эмоция</th>
-            <th>Интенсивность</th>
-            <th>Тип</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${data.emotions.map((e: any) => `
-            <tr>
-              <td>${new Date(e.created_date).toLocaleDateString()}</td>
-              <td>${e.emotion_name}</td>
-              <td>${e.intensity}/10</td>
-              <td>${GOOD_EMOTIONS.includes(e.emotion_type_id) ? '✅ Хорошая' : '❌ Плохая'}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    </div>
-  ` : '';
-
-  const diaryHtml = data.diary && data.diary.length > 0 ? `
-    <div class="section">
-      <h2>Записи дневника СМЭР</h2>
-      <p>Всего записей: ${data.summary.totalDiary || 0}</p>
-      
-      ${data.diary.map((entry: any) => `
-        <div class="diary-entry">
-          <h3>${new Date(entry.entry_date).toLocaleDateString()}</h3>
-          <p><strong>Ситуация:</strong> ${entry.situation_description}</p>
-          <p><strong>Мысли:</strong> ${entry.thoughts}</p>
-          <p><strong>Действия:</strong> ${entry.reaction_description}</p>
-          <p><strong>Эмоции:</strong> ${entry.selected_emotions?.map((e: any) => 
-            `${e.emotionName} (${e.intensity}/5)`
-          ).join(', ')}</p>
-        </div>
-      `).join('')}
-    </div>
-  ` : '';
-
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <title>Отчет TheStillness</title>
-      <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
-        h1 { color: #2C3F70; border-bottom: 2px solid #C8D4E5; padding-bottom: 10px; }
-        h2 { color: #2C3F70; margin-top: 30px; }
-        h3 { color: #4A6A9C; margin-bottom: 5px; }
-        .header { text-align: center; margin-bottom: 30px; padding: 20px; background: #E8EBED; border-radius: 10px; }
-        .header p { color: #5A6B7A; font-size: 18px; }
-        .section { margin-bottom: 30px; padding: 20px; background: white; border: 1px solid #C8D4E5; border-radius: 10px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #C8D4E5; }
-        th { background: #2C3F70; color: white; }
-        .diary-entry { margin-bottom: 20px; padding: 15px; background: #F9F7F3; border-left: 4px solid #2C3F70; border-radius: 5px; }
-        .summary { display: flex; justify-content: space-around; margin-top: 20px; flex-wrap: wrap; }
-        .stat { text-align: center; padding: 10px; background: #E8EBED; border-radius: 8px; min-width: 120px; margin: 5px; }
-        .stat .number { font-size: 24px; font-weight: bold; color: #2C3F70; }
-        .footer { margin-top: 40px; text-align: center; color: #8D9AA8; font-size: 12px; }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <h1>Отчет TheStillness</h1>
-        <p>Пользователь: ${userName}</p>
-        <p>Период: ${new Date(data.startDate).toLocaleDateString()} - ${new Date(data.endDate).toLocaleDateString()}</p>
-      </div>
-
-      <div class="summary">
-        <div class="stat"><div class="number">${data.summary.totalEmotions || 0}</div><div>Всего эмоций</div></div>
-        <div class="stat"><div class="number">${data.summary.goodEmotions || 0}</div><div>✅ Хороших</div></div>
-        <div class="stat"><div class="number">${data.summary.badEmotions || 0}</div><div>❌ Плохих</div></div>
-        <div class="stat"><div class="number">${data.summary.totalDiary || 0}</div><div>Записей дневника</div></div>
-      </div>
-
-      ${emotionsHtml}
-      ${diaryHtml}
-
-      <div class="footer">
-        <p>Сгенерировано приложением TheStillness</p>
-        <p>© 2026 Все права защищены</p>
-      </div>
-    </body>
-    </html>
-  `;
 };

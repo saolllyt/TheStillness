@@ -67,10 +67,28 @@ export class SmerModel {
   }
 
   // Получение всех записей пользователя
-  static async findByUserId(user_id: number, limit: number, offset: number): Promise<any[]> {
+  static async findByUserId(user_id: number, limit: number, offset: number, search?: string): Promise<any[]> {
+    if (search) {
+      const query = `
+        SELECT * FROM smer_diary
+        WHERE user_id = $1
+          AND (
+            situation_description ILIKE $4
+            OR thoughts ILIKE $4
+            OR reaction_description ILIKE $4
+            OR situation_place ILIKE $4
+            OR TO_CHAR(entry_date, 'DD.MM.YYYY') ILIKE $4
+            OR TO_CHAR(entry_date, 'YYYY-MM-DD') ILIKE $4
+          )
+        ORDER BY entry_date DESC, created_at DESC
+        LIMIT $2 OFFSET $3
+      `;
+      const result = await pool.query(query, [user_id, limit, offset, `%${search}%`]);
+      return result.rows;
+    }
     const query = `
-      SELECT * FROM smer_diary 
-      WHERE user_id = $1 
+      SELECT * FROM smer_diary
+      WHERE user_id = $1
       ORDER BY entry_date DESC, created_at DESC
       LIMIT $2 OFFSET $3
     `;
@@ -79,7 +97,23 @@ export class SmerModel {
   }
 
   // Подсчет количества записей пользователя
-  static async countByUserId(user_id: number): Promise<number> {
+  static async countByUserId(user_id: number, search?: string): Promise<number> {
+    if (search) {
+      const query = `
+        SELECT COUNT(*) FROM smer_diary
+        WHERE user_id = $1
+          AND (
+            situation_description ILIKE $2
+            OR thoughts ILIKE $2
+            OR reaction_description ILIKE $2
+            OR situation_place ILIKE $2
+            OR TO_CHAR(entry_date, 'DD.MM.YYYY') ILIKE $2
+            OR TO_CHAR(entry_date, 'YYYY-MM-DD') ILIKE $2
+          )
+      `;
+      const result = await pool.query(query, [user_id, `%${search}%`]);
+      return parseInt(result.rows[0].count);
+    }
     const query = 'SELECT COUNT(*) FROM smer_diary WHERE user_id = $1';
     const result = await pool.query(query, [user_id]);
     return parseInt(result.rows[0].count);

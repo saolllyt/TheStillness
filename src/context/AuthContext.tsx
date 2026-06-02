@@ -1,13 +1,14 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Alert } from 'react-native';
-import api from '../services/api/client';
+import api, { setUnauthorizedHandler } from '../services/api/client';
+import { setupDailyReminder } from '../services/notification.service';
 
 interface User {
   id: number;
   email: string;
   first_name: string | null;
   last_name: string | null;
+  role?: string;
 }
 
 interface AuthContextData {
@@ -21,6 +22,7 @@ interface AuthContextData {
     lastName?: string
   ) => Promise<{ success: boolean; message?: string }>;
   signOut: () => Promise<void>;
+  updateUser: (updates: Partial<User>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
@@ -30,8 +32,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setUnauthorizedHandler(() => {
+      setUser(null);
+    });
     loadStoredData();
   }, []);
+
+  // Ежедневное напоминание при авторизации
+  useEffect(() => {
+    if (user) {
+      setupDailyReminder().catch(console.error);
+    }
+  }, [user?.id]);
 
   const loadStoredData = async () => {
     try {
@@ -46,14 +58,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const parsedUser = JSON.parse(storedUser);
           api.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
           setUser(parsedUser);
-          console.log('✅ Session restored for:', parsedUser.email);
+          console.log(' Session restored for:', parsedUser.email);
         } catch (parseError) {
-          console.log('❌ Error parsing stored user');
+          console.log(' Error parsing stored user');
           await AsyncStorage.multiRemove(['@TheStillness:user', '@TheStillness:token']);
         }
       }
     } catch (error) {
-      console.log('❌ Error loading stored data:', error);
+      console.log(' Error loading stored data:', error);
     } finally {
       setLoading(false);
     }
@@ -66,19 +78,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await api.post('/auth/login', { email, password });
       const { user, token } = response.data;
 
-      // Проверяем что user и token существуют
       if (!user || !token) {
         throw new Error('Неверный ответ от сервера');
       }
 
-      // Проверяем что user - это объект
       if (typeof user !== 'object' || user === null) {
         throw new Error('Неверный формат данных пользователя');
       }
 
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
-      // Сохраняем только если данные валидны
+      // Сохраняем только если данные правильные
       await Promise.all([
         AsyncStorage.setItem('@TheStillness:user', JSON.stringify(user)),
         AsyncStorage.setItem('@TheStillness:token', token)
@@ -96,6 +106,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             break;
           case 400:
             errorMessage = error.response.data?.message || 'Проверьте введенные данные';
+            break;
+          case 403:
+            errorMessage = error.response.data?.message || 'Доступ запрещён';
             break;
           case 500:
             errorMessage = 'Ошибка сервера. Попробуйте позже';
@@ -133,19 +146,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const { user, token } = response.data;
 
-      // Проверяем что user и token существуют
       if (!user || !token) {
         throw new Error('Неверный ответ от сервера');
       }
 
-      // Проверяем что user это объект
       if (typeof user !== 'object' || user === null) {
         throw new Error('Неверный формат данных пользователя');
       }
 
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
-      // Сохраняем только если данные валидны
+      // Сохраняем только если данные правильные
       await Promise.all([
         AsyncStorage.setItem('@TheStillness:user', JSON.stringify(user)),
         AsyncStorage.setItem('@TheStillness:token', token)
@@ -187,8 +198,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateUser = async (updates: Partial<User>) => {
+    if (!user) return;
+    const updatedUser = { ...user, ...updates };
+    setUser(updatedUser);
+    await AsyncStorage.setItem('@TheStillness:user', JSON.stringify(updatedUser));
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

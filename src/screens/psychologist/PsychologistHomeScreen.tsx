@@ -1,0 +1,301 @@
+import React, { useState, useCallback } from 'react';
+import {
+  View, Text, StyleSheet, ScrollView,
+  RefreshControl, TouchableOpacity,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
+import { useAuth } from '../../context/AuthContext';
+import api from '../../services/api/client';
+
+export const PsychologistHomeScreen = ({ navigation }: any) => {
+  const { user } = useAuth();
+  const [stats, setStats] = useState({
+    totalPatients: 0,
+    activePatients: 0,
+    pendingRequests: 0,
+    unreadMessages: 0,
+  });
+  const [recentPatients, setRecentPatients] = useState<any[]>([]);
+  const [recentReports, setRecentReports] = useState<any[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadData = async () => {
+    try {
+      const [patientsRes, unreadRes, reportsRes] = await Promise.all([
+        api.get('/psychologist/patients'),
+        api.get('/psychologist/unread'),
+        api.get('/psychologist-reports'),
+      ]);
+      const patients = patientsRes.data.data || [];
+      const activePatients = patients.filter((p: any) => p.status === 'active');
+      const pendingPatients = patients.filter((p: any) => p.status === 'pending');
+      setStats({
+        totalPatients: patients.length,
+        activePatients: activePatients.length,
+        pendingRequests: pendingPatients.length,
+        unreadMessages: unreadRes.data.data?.count || 0,
+      });
+      setRecentPatients(activePatients.slice(0, 3));
+      setRecentReports((reportsRes.data.data || []).slice(0, 3));
+    } catch (error) {
+      console.error('Load psychologist home error:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  useFocusEffect(useCallback(() => { loadData(); }, []));
+
+  const getFullName = (p: any) => {
+    if (p.first_name || p.last_name) return `${p.first_name || ''} ${p.last_name || ''}`.trim();
+    return p.email || p.patient_email || '';
+  };
+
+  const formatDate = (d: string) => {
+    if (!d) return '';
+    return new Date(d).toLocaleDateString('ru-RU', {
+      day: '2-digit', month: '2-digit', year: 'numeric'
+    });
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => {
+            setRefreshing(true);
+            loadData();
+          }} />
+        }
+      >
+        <View style={styles.header}>
+          <Text style={styles.greeting}>
+            Добро пожаловать, {user?.first_name || 'Психолог'}
+          </Text>
+          <Text style={styles.subtitle}>Панель психолога</Text>
+        </View>
+
+        {/* Плашки */}
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <Feather name="users" size={24} color={COLORS.primary} style={styles.statIcon} />
+            <Text style={styles.statNumber}>{stats.totalPatients}</Text>
+            <Text style={styles.statLabel}>Всего пациентов</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Feather name="message-circle" size={24} color={COLORS.primary} style={styles.statIcon} />
+            <Text style={styles.statNumber}>{stats.unreadMessages}</Text>
+            <Text style={styles.statLabel}>Новых сообщений</Text>
+          </View>
+        </View>
+
+        {/* Быстрые действия */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Быстрые действия</Text>
+          <View style={styles.actionsRow}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => navigation.navigate('Patients')}
+            >
+              <View style={styles.actionIcon}>
+  <Feather name="users" size={24} color={COLORS.primary} />
+</View>
+              <Text style={styles.actionText}>Пациенты</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => navigation.navigate('Patients')}
+            >
+              <View style={styles.actionIconBadge}>
+                <View style={styles.actionIcon}>
+  <Feather name="clock" size={24} color={COLORS.primary} />
+</View>
+                {stats.pendingRequests > 0 && (
+                  <View style={styles.actionBadge}>
+                    <Text style={styles.actionBadgeText}>{stats.pendingRequests}</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={styles.actionText}>Запросы</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Активные пациенты */}
+        {recentPatients.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Активные пациенты</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Patients')}>
+                <Text style={styles.seeAll}>Все</Text>
+              </TouchableOpacity>
+            </View>
+            {recentPatients.map((patient) => (
+              <TouchableOpacity
+                key={patient.id}
+                style={styles.listCard}
+                onPress={() => navigation.navigate('Chat', {
+                  otherUserId: patient.id,
+                  otherUserName: getFullName(patient),
+                })}
+              >
+                <View style={styles.listAvatar}>
+                  <Text style={styles.listAvatarText}>
+                    {patient.first_name?.charAt(0)?.toUpperCase() ||
+                      patient.email.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+                <View style={styles.listInfo}>
+                  <Text style={styles.listName}>{getFullName(patient)}</Text>
+                  <Text style={styles.listSub}>{patient.email}</Text>
+                </View>
+                <Feather name="message-circle" size={20} color={COLORS.primary} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* Последние отчёты  */}
+        {recentReports.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Последние отчёты</Text>
+            {recentReports.map((report: any) => (
+              <TouchableOpacity
+                key={report.id}
+                style={styles.listCard}
+                onPress={() => navigation.navigate('ReportDetail', { reportId: report.id })}
+              >
+                <View style={styles.reportAvatar}>
+                  <Feather name="file-text" size={18} color={COLORS.primary} />
+                </View>
+                <View style={styles.listInfo}>
+                  <Text style={styles.listName}>
+                    {report.patient_first_name
+                      ? `${report.patient_first_name} ${report.patient_last_name || ''}`.trim()
+                      : report.patient_email}
+                  </Text>
+                  <Text style={styles.listSub}>{formatDate(report.report_date)}</Text>
+                </View>
+                <Feather name="chevron-right" size={18} color={COLORS.textMuted} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: COLORS.background },
+  scrollContent: {
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: SPACING.lg,
+    paddingBottom: 140,
+  },
+  header: { marginBottom: SPACING.xl },
+  greeting: { ...TYPOGRAPHY.h3, color: COLORS.primary },
+  subtitle: { ...TYPOGRAPHY.body2, color: COLORS.textLight, marginTop: 2 },
+
+  statsRow: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+    marginBottom: SPACING.xl,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: COLORS.secondary,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.md,
+    alignItems: 'center',
+    ...SHADOWS.small,
+  },
+  statIcon: { marginBottom: SPACING.xs },
+  statNumber: { fontSize: 32, fontWeight: '700', color: COLORS.primary },
+  statLabel: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.primaryLight,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+
+  section: {
+    backgroundColor: COLORS.white,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.lg,
+    marginBottom: SPACING.lg,
+    ...SHADOWS.small,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+  },
+  sectionTitle: {
+    ...TYPOGRAPHY.h4,
+    color: COLORS.primary,
+    marginBottom: SPACING.md,
+  },
+  seeAll: { ...TYPOGRAPHY.body2, color: COLORS.primary, fontWeight: '500' },
+
+  actionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  actionButton: { alignItems: 'center' },
+  actionIconBadge: { position: 'relative' },
+  actionIcon: {
+  width: 56, height: 56,
+  borderRadius: BORDER_RADIUS.lg,
+  backgroundColor: COLORS.secondary,
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginBottom: SPACING.xs,
+},
+actionText: { ...TYPOGRAPHY.caption, color: COLORS.primary, fontWeight: '600' },
+  actionBadge: {
+    position: 'absolute',
+    top: -4, right: -4,
+    width: 18, height: 18,
+    borderRadius: 9,
+    backgroundColor: COLORS.error,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  actionBadgeText: { color: COLORS.white, fontSize: 10, fontWeight: '700' },
+
+  listCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: SPACING.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  listAvatar: {
+    width: 40, height: 40,
+    borderRadius: BORDER_RADIUS.round,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: SPACING.md,
+  },
+  listAvatarText: { fontSize: 16, fontWeight: '700', color: COLORS.white },
+  reportAvatar: {
+    width: 40, height: 40,
+    borderRadius: BORDER_RADIUS.round,
+    backgroundColor: COLORS.secondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: SPACING.md,
+  },
+  listInfo: { flex: 1 },
+  listName: { ...TYPOGRAPHY.body2, color: COLORS.text, fontWeight: '600' },
+  listSub: { ...TYPOGRAPHY.caption, color: COLORS.textLight },
+});

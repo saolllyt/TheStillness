@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
 import { EmotionChart } from '../../components/profile/EmotionChart';
@@ -27,12 +28,20 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
   const { user, signOut } = useAuth();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [lastReportId, setLastReportId] = useState<number | null>(null);
   const [generatedReportData, setGeneratedReportData] = useState<any>(null);
-  
-  const [emotionData, setEmotionData] = useState({
+
+  const [emotionData, setEmotionData] = useState<{
+    labels: string[];
+    values: number[];
+    goodCounts: number[];
+    badCounts: number[];
+    todayIndex: number;
+  }>({
     labels: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
-    values: [0, 0, 0, 0, 0, 0, 0]
+    values: [0, 0, 0, 0, 0, 0, 0],
+    goodCounts: [0, 0, 0, 0, 0, 0, 0],
+    badCounts: [0, 0, 0, 0, 0, 0, 0],
+    todayIndex: 0,
   });
   const [diaryEntries, setDiaryEntries] = useState<any[]>([]);
   const [diaryTotal, setDiaryTotal] = useState(0);
@@ -40,19 +49,22 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
   const loadProfileData = async () => {
     try {
       setLoading(true);
-      console.log('Загрузка данных профиля...');
-      
-      const emotionsRes = await api.get('/profile/emotions/week');
-      
+
+      const [emotionsRes, diaryRes] = await Promise.all([
+        api.get('/profile/emotions/week'),
+        api.get('/profile/diary?limit=5&offset=0')
+      ]);
+
       if (emotionsRes.data.success) {
         setEmotionData({
           labels: emotionsRes.data.data.labels,
-          values: emotionsRes.data.data.values
+          values: emotionsRes.data.data.values,
+          goodCounts: emotionsRes.data.data.goodCounts || [],
+          badCounts: emotionsRes.data.data.badCounts || [],
+          todayIndex: emotionsRes.data.data.todayIndex ?? 0,
         });
       }
 
-      const diaryRes = await api.get('/profile/diary?limit=5&offset=0');
-      
       if (diaryRes.data.success) {
         setDiaryEntries(diaryRes.data.data);
         setDiaryTotal(diaryRes.data.total);
@@ -71,23 +83,15 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
     }, [])
   );
 
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      loadProfileData();
-    });
-
-    return unsubscribe;
-  }, [navigation]);
-
   const onRefresh = async () => {
     setRefreshing(true);
     await loadProfileData();
   };
 
-  const handleEntryPress = (entryId: number) => {
+  const handleEntryPress = (entry: any) => {
     navigation.navigate('Diary', {
       screen: 'DiaryEntry',
-      params: { id: entryId }
+      params: { id: entry.id }
     });
   };
 
@@ -110,8 +114,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
           onPress: async () => {
             try {
               await api.delete(`/diary/${entryId}`);
-              loadProfileData();
-              Alert.alert('Успешно', 'Запись удалена');
+              setDiaryEntries(prev => prev.filter(e => e.id !== entryId));
+              setDiaryTotal(prev => prev - 1);
             } catch (error) {
               Alert.alert('Ошибка', 'Не удалось удалить запись');
             }
@@ -122,18 +126,33 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
   };
 
   const saveReportAsPDF = async (reportData: any) => {
-    try {
-      const fileName = `report_${new Date().toISOString().split('T')[0]}`;
-      const pdfUri = await generatePDF(reportData, user?.first_name || user?.email || 'Пользователь');
-      
-      await sharePDF(pdfUri, fileName);
-      
-    } catch (error) {
-      Alert.alert('Ошибка', 'Не удалось создать PDF');
-    }
-  };
+  try {
+    // Имя отчета
+    const dateStr = new Date().toISOString().split('T')[0];
+    const fileName = `report-${dateStr}`;
 
-  const handleGenerateReport = async (startDate: Date, endDate: Date): Promise<number | void> => {
+    const pdfUri = await generatePDF(
+      reportData,
+      user?.first_name || user?.email || 'Пользователь'
+    );
+
+    await sharePDF(pdfUri, fileName, () => {
+      // Открываем отчёт 
+      navigation.getParent()?.navigate('ReportViewer', {
+        reportData,
+        userName: user?.first_name || user?.email || 'Пользователь',
+        reportId: Date.now(),
+      });
+    });
+  } catch (error) {
+    Alert.alert('Ошибка', 'Не удалось создать PDF');
+  }
+};
+
+  const handleGenerateReport = async (
+    startDate: Date,
+    endDate: Date
+  ): Promise<number | void> => {
     try {
       const response = await api.post('/profile/report', {
         startDate: startDate.toISOString().split('T')[0],
@@ -142,16 +161,15 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
       });
 
       if (response.data.success) {
-        setLastReportId(response.data.reportId);
         setGeneratedReportData(response.data.data);
-        
         await saveReportAsPDF(response.data.data);
-        
         return response.data.reportId;
       }
     } catch (error: any) {
-      console.error('Generate report error:', error.response?.data || error.message);
-      Alert.alert('Ошибка', error.response?.data?.message || 'Не удалось сгенерировать отчет');
+      Alert.alert(
+        'Ошибка',
+        error.response?.data?.message || 'Не удалось сгенерировать отчет'
+      );
     }
   };
 
@@ -164,11 +182,44 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
         {
           text: 'Выйти',
           style: 'destructive',
-          onPress: async () => {
-            await signOut();
-          },
+          onPress: async () => await signOut(),
         },
       ],
+    );
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Удалить аккаунт',
+      'Вы уверены? Все ваши данные будут безвозвратно удалены.',
+      [
+        { text: 'Отмена', style: 'cancel' },
+        {
+          text: 'Удалить',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              'Подтверждение удаления',
+              'Это действие необратимо. Аккаунт, дневник и все данные будут удалены навсегда.',
+              [
+                { text: 'Отмена', style: 'cancel' },
+                {
+                  text: 'Да, удалить',
+                  style: 'destructive',
+                  onPress: async () => {
+                    try {
+                      await api.delete('/auth/account');
+                      await signOut();
+                    } catch {
+                      Alert.alert('Ошибка', 'Не удалось удалить аккаунт. Попробуйте позже.');
+                    }
+                  },
+                },
+              ]
+            );
+          },
+        },
+      ]
     );
   };
 
@@ -185,36 +236,39 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
+        {/* Шапка */}
         <View style={styles.header}>
           <View style={styles.userInfo}>
-            <View style={styles.avatarContainer}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
-                  {user?.first_name?.charAt(0) || user?.email?.charAt(0).toUpperCase()}
-                </Text>
-              </View>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
+                {user?.first_name?.charAt(0)?.toUpperCase() ||
+                  user?.email?.charAt(0)?.toUpperCase()}
+              </Text>
             </View>
             <View style={styles.userDetails}>
               <Text style={styles.userName}>
-                {user?.first_name 
-                  ? `${user.first_name} ${user.last_name || ''}` 
+                {user?.first_name
+                  ? `${user.first_name} ${user.last_name || ''}`
                   : user?.email}
               </Text>
               <Text style={styles.userEmail}>{user?.email}</Text>
             </View>
           </View>
-          <TouchableOpacity 
-            style={styles.settingsButton}
-            onPress={() => Alert.alert('Настройки', 'Функция будет доступна позже')}
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={() => navigation.navigate('EditProfile')}
           >
-            <Text style={styles.settingsIcon}>⚙️</Text>
+            <Feather name="edit-2" size={20} color={COLORS.primary} />
           </TouchableOpacity>
         </View>
 
+        {/* Диаграмма эмоций */}
         <EmotionChart data={emotionData} />
 
+        {/* Отчёты */}
         <ReportCard onGenerateReport={handleGenerateReport} />
 
+        {/* Последние записи */}
         <View style={styles.diaryHeader}>
           <Text style={styles.diaryTitle}>Последние записи</Text>
           {diaryTotal > 5 && (
@@ -229,7 +283,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
             <DiaryEntryCard
               key={entry.id}
               entry={entry}
-              onPress={() => handleEntryPress(entry.id)}
+              onPress={() => handleEntryPress(entry)}
               onEdit={() => handleEditEntry(entry.id)}
               onDelete={() => handleDeleteEntry(entry.id)}
             />
@@ -250,7 +304,15 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
           style={styles.logoutButton}
         />
 
-        <Text style={styles.version}>Версия 1.0.0</Text>
+        <Button
+          title="Удалить аккаунт"
+          onPress={handleDeleteAccount}
+          variant="outline"
+          size="large"
+          style={styles.deleteButton}
+          textStyle={{ color: COLORS.error }}
+        />
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -263,7 +325,8 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: SPACING.xl,
-    paddingVertical: SPACING.lg,
+    paddingTop: SPACING.lg,
+    paddingBottom: 140,
   },
   header: {
     flexDirection: 'row',
@@ -276,9 +339,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-  avatarContainer: {
-    marginRight: SPACING.md,
-  },
   avatar: {
     width: 60,
     height: 60,
@@ -286,6 +346,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: SPACING.md,
     ...SHADOWS.small,
   },
   avatarText: {
@@ -305,11 +366,14 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.caption,
     color: COLORS.textLight,
   },
-  settingsButton: {
-    padding: SPACING.sm,
-  },
-  settingsIcon: {
-    fontSize: 24,
+  editButton: {
+    width: 44,
+    height: 44,
+    borderRadius: BORDER_RADIUS.round,
+    backgroundColor: COLORS.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOWS.small,
   },
   diaryHeader: {
     flexDirection: 'row',
@@ -328,13 +392,12 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     marginTop: SPACING.xl,
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.sm,
   },
-  version: {
-    ...TYPOGRAPHY.caption,
-    color: COLORS.textMuted,
-    textAlign: 'center',
-    marginBottom: SPACING.lg,
+  deleteButton: {
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.xl,
+    borderColor: COLORS.error,
   },
   emptyContainer: {
     backgroundColor: COLORS.white,

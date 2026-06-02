@@ -65,7 +65,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({
         </Text>
       </View>
 
-      {/* Время слева от кнопки воспроизведения */}
+      {/* Время */}
       <View style={styles.timeLeftContainer}>
         {isCurrentTrack ? (
           <Text style={styles.currentTimeText}>

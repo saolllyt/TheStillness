@@ -1,13 +1,6 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { format } from 'date-fns';
-import { ru } from 'date-fns/locale';
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
 import { Button } from '../common/Button';
 
@@ -19,6 +12,7 @@ export const ReportCard: React.FC<ReportCardProps> = ({ onGenerateReport }) => {
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
   const [loading, setLoading] = useState(false);
+  const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | null>(null);
 
   const getLastWeekDates = () => {
     const end = new Date();
@@ -26,6 +20,7 @@ export const ReportCard: React.FC<ReportCardProps> = ({ onGenerateReport }) => {
     start.setDate(start.getDate() - 7);
     setStartDate(start);
     setEndDate(end);
+    setSelectedPeriod('week');
   };
 
   const getCurrentMonthDates = () => {
@@ -33,6 +28,7 @@ export const ReportCard: React.FC<ReportCardProps> = ({ onGenerateReport }) => {
     const start = new Date(end.getFullYear(), end.getMonth(), 1);
     setStartDate(start);
     setEndDate(end);
+    setSelectedPeriod('month');
   };
 
   const handleGenerateReport = async () => {
@@ -48,29 +44,40 @@ export const ReportCard: React.FC<ReportCardProps> = ({ onGenerateReport }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Отчеты</Text>
-      
+      <Text style={styles.title}>Отчёты</Text>
+
+      {/* выделение выбранного периода */}
       <View style={styles.quickPeriods}>
-        <TouchableOpacity style={styles.periodButton} onPress={getLastWeekDates}>
-          <Text style={styles.periodButtonText}>Неделя</Text>
+        <TouchableOpacity
+          style={[styles.periodButton, selectedPeriod === 'week' && styles.periodButtonActive]}
+          onPress={getLastWeekDates}
+        >
+          <Text style={[styles.periodButtonText, selectedPeriod === 'week' && styles.periodButtonTextActive]}>
+            Неделя
+          </Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.periodButton} onPress={getCurrentMonthDates}>
-          <Text style={styles.periodButtonText}>Месяц</Text>
+        <TouchableOpacity
+          style={[styles.periodButton, selectedPeriod === 'month' && styles.periodButtonActive]}
+          onPress={getCurrentMonthDates}
+        >
+          <Text style={[styles.periodButtonText, selectedPeriod === 'month' && styles.periodButtonTextActive]}>
+            Месяц
+          </Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.dateRange}>
         <Text style={styles.dateRangeText}>
-          {format(startDate, 'dd.MM.yyyy')} - {format(endDate, 'dd.MM.yyyy')}
+          {format(startDate, 'dd.MM.yyyy')} — {format(endDate, 'dd.MM.yyyy')}
         </Text>
       </View>
 
+      {/* единый стиль кнопки */}
       <Button
-        title="Сформировать отчет"
+        title="Сформировать отчёт"
         onPress={handleGenerateReport}
-        variant="secondary"
-        size="medium"
-        style={styles.generateButton}
+        variant="primary"
+        size="large"
         loading={loading}
         disabled={loading}
       />
@@ -86,26 +93,33 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
     ...SHADOWS.small,
   },
-  title: {
-    ...TYPOGRAPHY.h4,
-    color: COLORS.primary,
-    marginBottom: SPACING.md,
-  },
+  title: { ...TYPOGRAPHY.h4, color: COLORS.primary, marginBottom: SPACING.md },
   quickPeriods: {
     flexDirection: 'row',
     marginBottom: SPACING.md,
     gap: SPACING.sm,
   },
   periodButton: {
-    backgroundColor: COLORS.secondary,
-    paddingHorizontal: SPACING.md,
+    flex: 1,
     paddingVertical: SPACING.sm,
+    alignItems: 'center',
     borderRadius: BORDER_RADIUS.round,
+    backgroundColor: COLORS.background,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+  },
+  periodButtonActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
   },
   periodButtonText: {
     ...TYPOGRAPHY.body2,
-    color: COLORS.primary,
+    color: COLORS.textLight,
     fontWeight: '500',
+  },
+  periodButtonTextActive: {
+    color: COLORS.white,
+    fontWeight: '600',
   },
   dateRange: {
     backgroundColor: COLORS.background,
@@ -114,11 +128,5 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
     alignItems: 'center',
   },
-  dateRangeText: {
-    ...TYPOGRAPHY.body2,
-    color: COLORS.text,
-  },
-  generateButton: {
-    marginBottom: SPACING.md,
-  },
+  dateRangeText: { ...TYPOGRAPHY.body2, color: COLORS.text },
 });

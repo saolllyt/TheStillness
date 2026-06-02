@@ -77,7 +77,7 @@ export const DiaryEntryScreen: React.FC<DiaryEntryScreenProps> = ({ navigation, 
     }
   };
 
-  const handleDateChange = (event: any, selectedDate?: Date) => {
+  const handleDateChange = (_event: any, selectedDate?: Date) => {
     setShowDatePicker(false);
     if (selectedDate) {
       setFormData(prev => ({ ...prev, entry_date: selectedDate }));
@@ -139,38 +139,39 @@ export const DiaryEntryScreen: React.FC<DiaryEntryScreenProps> = ({ navigation, 
   };
 
   const handleSave = async () => {
-    if (!validateForm()) return;
+  if (!validateForm()) return;
 
-    setSaving(true);
-    try {
-      const data = {
-        entry_date: format(formData.entry_date, 'yyyy-MM-dd'),
-        situation_place: formData.situation_place || null,
-        situation_description: formData.situation_description,
-        thoughts: formData.thoughts,
-        reaction_description: formData.reaction_description,
-        selected_emotions: formData.selected_emotions.map(e => ({
-          emotionId: e.emotionId,
-          emotionName: e.emotionName,
-          intensity: e.intensity
-        })),
-      };
+  setSaving(true);
+  try {
+    const data = {
+      entry_date: format(formData.entry_date, 'yyyy-MM-dd'),
+      situation_place: formData.situation_place || null,
+      situation_description: formData.situation_description,
+      thoughts: formData.thoughts,
+      reaction_description: formData.reaction_description,
+      selected_emotions: formData.selected_emotions.map(e => ({
+        emotionId: e.emotionId,
+        emotionName: e.emotionName,
+        name: e.emotionName, 
+        intensity: e.intensity
+      })),
+    };
 
-      if (isEditing) {
-        await api.put(`/diary/${entryId}`, data);
-        Alert.alert('Успешно', 'Запись обновлена');
-      } else {
-        await api.post('/diary', data);
-        Alert.alert('Успешно', 'Запись создана');
-      }
-      
-      navigation.navigate('DiaryMain', { refresh: true });
-    } catch (error) {
-      Alert.alert('Ошибка', 'Не удалось сохранить запись');
-    } finally {
-      setSaving(false);
+    if (isEditing) {
+      await api.put(`/diary/${entryId}`, data);
+      Alert.alert('Успешно', 'Запись обновлена');
+    } else {
+      await api.post('/diary', data);
+      Alert.alert('Успешно', 'Запись создана');
     }
-  };
+
+    navigation.navigate('DiaryMain', { refresh: true });
+  } catch (error) {
+    Alert.alert('Ошибка', 'Не удалось сохранить запись');
+  } finally {
+    setSaving(false);
+  }
+};
 
   if (loading) {
     return (
@@ -312,7 +313,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: SPACING.xl,
+    paddingHorizontal: SPACING.xl,
+    paddingTop: SPACING.xl,
+    paddingBottom: 140,
   },
   loadingContainer: {
     flex: 1,

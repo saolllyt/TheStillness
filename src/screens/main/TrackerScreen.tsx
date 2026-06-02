@@ -1,19 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
+  View, Text, StyleSheet, ScrollView,
+  TouchableOpacity, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
 import { EmotionCard } from '../../components/emotion/EmotionCard';
 import { EmotionJar } from '../../components/emotion/EmotionJar';
 import { Button } from '../../components/common/Button';
+import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api/client';
 
 interface Emotion {
@@ -30,195 +28,176 @@ interface SelectedEmotion {
 }
 
 export const TrackerScreen = () => {
+  const { user } = useAuth();
   const [emotions, setEmotions] = useState<Emotion[]>([]);
   const [selectedEmotions, setSelectedEmotions] = useState<SelectedEmotion[]>([]);
   const [todayEntries, setTodayEntries] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  
+
   const today = format(new Date(), 'd MMMM yyyy', { locale: ru });
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return 'Доброе утро';
+    if (hour >= 12 && hour < 17) return 'Добрый день';
+    if (hour >= 17 && hour < 22) return 'Добрый вечер';
+    return 'Доброй ночи';
+  };
+
+  const getUserName = () => {
+    if (user?.first_name) return user.first_name;
+    if (user?.email) return user.email.split('@')[0];
+    return '';
+  };
+
+  useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
     try {
-      setLoading(true);
-      
-      // Загружаем типы эмоций
       const typesRes = await api.get('/tracker/types');
-      setEmotions(typesRes.data.data);
+      const types: Emotion[] = typesRes.data.data;
+      setEmotions(types);
 
-      // Загружаем записи за сегодня
       const entriesRes = await api.get('/tracker/today');
-      setTodayEntries(entriesRes.data.data);
-      
-      // Преобразуем записи в выбранные эмоции
-      const selected = entriesRes.data.data.map((entry: any) => ({
+      const entries: any[] = entriesRes.data.data;
+      setTodayEntries(entries);
+
+      const selected: SelectedEmotion[] = entries.map((entry: any) => ({
         emotionId: entry.emotion_type_id,
-        emotion: typesRes.data.data.find((e: Emotion) => e.id === entry.emotion_type_id),
-        intensity: entry.intensity
+        emotion: types.find((e) => e.id === entry.emotion_type_id) ?? {
+          id: entry.emotion_type_id,
+          name: entry.emotion_name ?? '?',
+          emoji: entry.emoji ?? null,
+          color: entry.color ?? null,
+        },
+        intensity: entry.intensity ?? 6,
       }));
       setSelectedEmotions(selected);
-      
-    } catch (error) {
-      console.error('Load data error:', error);
+    } catch {
       Alert.alert('Ошибка', 'Не удалось загрузить данные');
-    } finally {
-      setLoading(false);
     }
   };
 
-  const isEmotionSelected = (emotionId: number) => 
-    selectedEmotions.some(e => e.emotionId === emotionId);
+  const isSelected = (id: number) => selectedEmotions.some(e => e.emotionId === id);
+  const getSelected = (id: number) => selectedEmotions.find(e => e.emotionId === id);
 
-  const getSelectedEmotion = (emotionId: number) =>
-    selectedEmotions.find(e => e.emotionId === emotionId);
-
-  const handleSelectEmotion = (emotion: Emotion) => {
-    if (isEmotionSelected(emotion.id)) {
+  const handleToggle = (emotion: Emotion) => {
+    if (isSelected(emotion.id)) {
       setSelectedEmotions(prev => prev.filter(e => e.emotionId !== emotion.id));
     } else {
-      setSelectedEmotions(prev => [
-        ...prev,
-        { emotionId: emotion.id, emotion, intensity: 5 }
-      ]);
+      // дефолтная интенсивность
+      setSelectedEmotions(prev => [...prev, { emotionId: emotion.id, emotion, intensity: 5 }]);
     }
   };
 
-  const handleIntensityChange = (emotionId: number, intensity: number) => {
+  const handleIntensity = (emotionId: number, intensity: number) => {
     setSelectedEmotions(prev =>
-      prev.map(e =>
-        e.emotionId === emotionId ? { ...e, intensity } : e
-      )
+      prev.map(e => e.emotionId === emotionId ? { ...e, intensity } : e)
     );
   };
 
-const handleSaveEmotions = async () => {
-  if (selectedEmotions.length === 0) {
-    Alert.alert('Ошибка', 'Выберите хотя бы одну эмоцию');
-    return;
-  }
-
-  setSaving(true);
-  
-  try {
-    console.log('Сохранение эмоций:', selectedEmotions);
-    
-    // Сохраняем каждую эмоцию
-    for (const emotion of selectedEmotions) {
-      const response = await api.post('/tracker/entries', {
-        emotion_type_id: emotion.emotionId,
-        intensity: emotion.intensity,
-        note: null
-      });
-      console.log('Сохранено:', response.data);
+  const handleSave = async () => {
+    if (selectedEmotions.length === 0) {
+      Alert.alert('Выберите хотя бы одну эмоцию');
+      return;
     }
-    
-    Alert.alert('Успешно', 'Эмоции сохранены!');
-    loadData(); // Перезагружаем данные трекера
-    
-  } catch (error) {
-    console.error('Ошибка сохранения:', error);
-    Alert.alert('Ошибка', 'Не удалось сохранить эмоции');
-  } finally {
-    setSaving(false);
-  }
-};
+    setSaving(true);
+    try {
+      for (const e of selectedEmotions) {
+        await api.post('/tracker/entries', {
+          emotion_type_id: e.emotionId,
+          intensity: e.intensity,
+          note: null,
+        });
+      }
+      Alert.alert('Сохранено!', 'Эмоции записаны.');
+      loadData();
+    } catch {
+      Alert.alert('Ошибка', 'Не удалось сохранить эмоции');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleClearAll = () => {
-    Alert.alert(
-      'Очистить всё',
-      'Вы уверены, что хотите очистить все эмоции за сегодня?',
-      [
-        { text: 'Отмена', style: 'cancel' },
-        {
-          text: 'Очистить',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // Удаляем все записи за сегодня
-              for (const entry of todayEntries) {
-                await api.delete(`/tracker/entries/${entry.id}`);
-              }
-              setSelectedEmotions([]);
-              loadData();
-            } catch (error) {
-              Alert.alert('Ошибка', 'Не удалось очистить записи');
+    Alert.alert('Очистить всё', 'Удалить все эмоции за сегодня?', [
+      { text: 'Отмена', style: 'cancel' },
+      {
+        text: 'Очистить',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            for (const entry of todayEntries) {
+              await api.delete(`/tracker/entries/${entry.id}`);
             }
-          },
+            setSelectedEmotions([]);
+            loadData();
+          } catch {
+            Alert.alert('Ошибка', 'Не удалось очистить записи');
+          }
         },
-      ],
-    );
+      },
+    ]);
   };
 
   const jarEmotions = selectedEmotions.map(e => ({
-    emotion: {
-      id: e.emotion.id,
-      name: e.emotion.name,
-      emoji: e.emotion.emoji,
-      color: e.emotion.color,
-    },
+    emotion: e.emotion,
     intensity: e.intensity,
   }));
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+
+        {/* Шапка */}
         <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>Привет, Анна 👋</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.greeting}>{getGreeting()}, {getUserName()}</Text>
             <Text style={styles.date}>{today}</Text>
           </View>
-          <TouchableOpacity 
-            style={styles.infoButton}
-            onPress={loadData}
-          >
-            <Text style={styles.infoIcon}>🔄</Text>
+          <TouchableOpacity style={styles.refreshBtn} onPress={loadData}>
+            <Feather name="refresh-cw" size={20} color={COLORS.primary} />
           </TouchableOpacity>
         </View>
 
+        {/* Банка эмоций */}
         <EmotionJar emotions={jarEmotions} />
 
+        {/* Секция выбора */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Какие эмоции вы испытываете?</Text>
-          </View>
-          
-          <View style={styles.sectionSubheader}>
-            <Text style={styles.sectionSubtitle}>
-              Выбрано: {selectedEmotions.length} {selectedEmotions.length === 1 ? 'эмоция' : 
-                selectedEmotions.length > 1 && selectedEmotions.length < 5 ? 'эмоции' : 'эмоций'}
-            </Text>
-            
+          <View style={styles.sectionRow}>
+            <Text style={styles.sectionTitle}>Как вы себя чувствуете?</Text>
             {selectedEmotions.length > 0 && (
               <TouchableOpacity onPress={handleClearAll}>
-                <Text style={styles.clearText}>Очистить всё</Text>
+                <Text style={styles.clearText}>Очистить</Text>
               </TouchableOpacity>
             )}
           </View>
 
-          <View style={styles.emotionsGrid}>
+          {selectedEmotions.length > 0 && (
+            <Text style={styles.countHint}>
+              Выбрано: {selectedEmotions.length}{' '}
+              {selectedEmotions.length === 1 ? 'эмоция'
+                : selectedEmotions.length < 5 ? 'эмоции'
+                : 'эмоций'}
+            </Text>
+          )}
+
+          <View style={styles.grid}>
             {emotions.map((emotion) => {
-              const selected = isEmotionSelected(emotion.id);
-              const selectedEmotion = getSelectedEmotion(emotion.id);
-              
+              const sel = isSelected(emotion.id);
+              const selData = getSelected(emotion.id);
               return (
-                <EmotionCard
-                  key={emotion.id}
-                  emotion={emotion}
-                  selected={selected}
-                  intensity={selectedEmotion?.intensity}
-                  onSelect={() => handleSelectEmotion(emotion)}
-                  onIntensityChange={(intensity) => 
-                    handleIntensityChange(emotion.id, intensity)
-                  }
-                  showIntensity={selected}
-                />
+                <View key={emotion.id} style={styles.gridCell}>
+                  <EmotionCard
+                    emotion={emotion}
+                    selected={sel}
+                    intensity={selData?.intensity}
+                    onSelect={() => handleToggle(emotion)}
+                    onIntensityChange={(val) => handleIntensity(emotion.id, val)}
+                    showIntensity={sel}
+                  />
+                </View>
               );
             })}
           </View>
@@ -226,92 +205,71 @@ const handleSaveEmotions = async () => {
 
         <Button
           title="Сохранить эмоции"
-          onPress={handleSaveEmotions}
+          onPress={handleSave}
           loading={saving}
           disabled={selectedEmotions.length === 0}
           style={styles.saveButton}
         />
 
-        <Text style={styles.resetNote}>
-          ✨ Запись обнулится завтра автоматически
-        </Text>
+        <View style={styles.hint}>
+          <Feather name="info" size={13} color={COLORS.textMuted} />
+          <Text style={styles.hintText}>Запись обнулится завтра автоматически</Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
+  container: { flex: 1, backgroundColor: COLORS.background },
   scrollContent: {
-    paddingHorizontal: SPACING.xl,
-    paddingVertical: SPACING.lg,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    paddingBottom: 140,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: SPACING.xl,
+    marginBottom: SPACING.md,
   },
-  greeting: {
-    ...TYPOGRAPHY.h3,
-    color: COLORS.primary,
-    marginBottom: 4,
-  },
-  date: {
-    ...TYPOGRAPHY.body2,
-    color: COLORS.textLight,
-  },
-  infoButton: {
-    width: 44,
-    height: 44,
+  greeting: { ...TYPOGRAPHY.h4, color: COLORS.primary, marginBottom: 2 },
+  date: { ...TYPOGRAPHY.caption, color: COLORS.textLight },
+  refreshBtn: {
+    width: 40, height: 40,
     borderRadius: BORDER_RADIUS.round,
     backgroundColor: COLORS.white,
     justifyContent: 'center',
     alignItems: 'center',
     ...SHADOWS.small,
   },
-  infoIcon: {
-    fontSize: 20,
-  },
-  section: {
-    marginBottom: SPACING.xl,
-  },
-  sectionHeader: {
-    marginBottom: SPACING.sm,
-  },
-  sectionTitle: {
-    ...TYPOGRAPHY.h4,
-    color: COLORS.primary,
-  },
-  sectionSubheader: {
+  section: { marginTop: SPACING.md },
+  sectionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: SPACING.md,
+    marginBottom: 4,
   },
-  sectionSubtitle: {
+  sectionTitle: { ...TYPOGRAPHY.h4, color: COLORS.primary },
+  clearText: { ...TYPOGRAPHY.caption, color: COLORS.error, fontWeight: '600' },
+  countHint: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textLight,
+    color: COLORS.textMuted,
+    marginBottom: SPACING.sm,
   },
-  clearText: {
-    ...TYPOGRAPHY.body2,
-    color: COLORS.error,
-    fontWeight: '500',
-  },
-  emotionsGrid: {
+  grid: {
     marginTop: SPACING.sm,
   },
-  saveButton: {
-    marginTop: SPACING.md,
+  gridCell: {
+    marginBottom: SPACING.sm,
+  },
+  saveButton: { marginTop: SPACING.lg, marginBottom: SPACING.sm },
+  hint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.xs,
     marginBottom: SPACING.md,
   },
-  resetNote: {
-    ...TYPOGRAPHY.caption,
-    color: COLORS.textLight,
-    textAlign: 'center',
-    marginBottom: SPACING.lg,
-  },
+  hintText: { ...TYPOGRAPHY.caption, color: COLORS.textMuted },
 });

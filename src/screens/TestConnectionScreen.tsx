@@ -15,30 +15,30 @@ export const TestConnectionScreen = () => {
 
   const testHealth = async () => {
     try {
-      addLog('🔄 Тестируем /health...');
+      addLog(' Тестируем /health...');
       const response = await api.get('/health');
-      addLog(`✅ Успех! Статус: ${response.status}`);
-      addLog(`📦 Данные: ${JSON.stringify(response.data)}`);
-      setStatus('✅ Сервер работает!');
+      addLog(` Успех! Статус: ${response.status}`);
+      addLog(` Данные: ${JSON.stringify(response.data)}`);
+      setStatus(' Сервер работает!');
     } catch (error: any) {
-      addLog(`❌ Ошибка: ${error.message}`);
-      setStatus('❌ Сервер не отвечает');
+      addLog(` Ошибка: ${error.message}`);
+      setStatus(' Сервер не отвечает');
     }
   };
 
   const testDb = async () => {
     try {
-      addLog('🔄 Тестируем БД...');
+      addLog(' Тестируем БД...');
       const response = await api.get('/health');
-      addLog(`✅ БД подключена: ${response.data.message}`);
+      addLog(` БД подключена: ${response.data.message}`);
     } catch (error: any) {
-      addLog(`❌ Ошибка БД: ${error.message}`);
+      addLog(` Ошибка БД: ${error.message}`);
     }
   };
 
   const testRegister = async () => {
     try {
-      addLog('🔄 Тестируем регистрацию...');
+      addLog(' Тестируем регистрацию...');
       const testEmail = `test${Date.now()}@example.com`;
       const response = await api.post('/auth/register', {
         email: testEmail,
@@ -46,12 +46,12 @@ export const TestConnectionScreen = () => {
         firstName: 'Тест',
         lastName: 'Пользователь'
       });
-      addLog(`✅ Регистрация успешна!`);
-      addLog(`👤 Email: ${response.data.user.email}`);
+      addLog(` Регистрация успешна!`);
+      addLog(` Email: ${response.data.user.email}`);
     } catch (error: any) {
-      addLog(`❌ Ошибка регистрации: ${error.message}`);
+      addLog(` Ошибка регистрации: ${error.message}`);
       if (error.response) {
-        addLog(`📝 Ответ сервера: ${JSON.stringify(error.response.data)}`);
+        addLog(` Ответ сервера: ${JSON.stringify(error.response.data)}`);
       }
     }
   };
@@ -68,27 +68,27 @@ export const TestConnectionScreen = () => {
 
         <View style={styles.buttonContainer}>
           <TouchableOpacity style={styles.button} onPress={testHealth}>
-            <Text style={styles.buttonText}>🏥 Тест /health</Text>
+            <Text style={styles.buttonText}> Тест /health</Text>
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.button} onPress={testDb}>
-            <Text style={styles.buttonText}>🗄️ Тест БД</Text>
+            <Text style={styles.buttonText}> Тест БД</Text>
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.button} onPress={testRegister}>
-            <Text style={styles.buttonText}>📝 Тест регистрации</Text>
+            <Text style={styles.buttonText}> Тест регистрации</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.logsContainer}>
-          <Text style={styles.logsTitle}>📋 Логи:</Text>
+          <Text style={styles.logsTitle}> Логи:</Text>
           {logs.map((log, i) => (
             <Text key={i} style={styles.log}>{log}</Text>
           ))}
         </View>
 
         <View style={styles.tipContainer}>
-          <Text style={styles.tipTitle}>💡 Проверьте:</Text>
+          <Text style={styles.tipTitle}> Проверьте:</Text>
           <Text style={styles.tip}>1. Сервер запущен? (npm run dev)</Text>
           <Text style={styles.tip}>2. URL в client.ts: {api.defaults.baseURL}</Text>
           <Text style={styles.tip}>3. Брандмауэр не блокирует порт 3001</Text>
