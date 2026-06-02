@@ -1,8 +1,7 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const YOUR_IP = '127.0.0.1';
-const API_URL = `http://${YOUR_IP}:3001/api`;
+const API_URL = 'https://thestillness-production.up.railway.app/api';
 
 const api = axios.create({
   baseURL: API_URL,

@@ -32,5 +32,5 @@ export const sendResetCode = async (email: string, code: string): Promise<void> 
       </div>
     `,
   });
-  console.log(`✅ Письмо успешно отправлено на ${email}`);
+  console.log(` Письмо успешно отправлено на ${email}`);
 };
