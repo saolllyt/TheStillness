@@ -30,10 +30,7 @@ if (!JWT_SECRET) {
   process.exit(1);
 }
 
-app.use(cors({
-  origin: '*',
-  credentials: true
-}));
+app.use(cors({ origin: '*', credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(sanitizeMiddleware);
@@ -46,7 +43,6 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Swagger UI
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   customSiteTitle: 'TheStillness API Docs',
   swaggerOptions: { persistAuthorization: true },
@@ -56,10 +52,8 @@ app.get('/api-docs.json', (_req, res) => {
   res.send(swaggerSpec);
 });
 
-// Статические файлы загруженные PDF книги
 app.use('/books', express.static(path.join(process.cwd(), 'assets/books')));
 
-// Маршруты
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/diary', diaryRoutes);
@@ -71,17 +65,13 @@ app.use('/api/psychologist', psychologistRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/psychologist-reports', psychologistReportRoutes);
 
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    message: 'Server is running',
-    jwt_configured: !!JWT_SECRET
-  });
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'OK', message: 'Server is running', jwt_configured: !!JWT_SECRET });
 });
 
 const initSchema = async () => {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS users (
+  const queries = [
+    `CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
       email VARCHAR(255) UNIQUE NOT NULL,
       password_hash VARCHAR(255) NOT NULL,
@@ -90,8 +80,8 @@ const initSchema = async () => {
       role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'psychologist', 'admin')),
       is_active BOOLEAN DEFAULT true,
       created_at TIMESTAMP DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS psychologists (
+    )`,
+    `CREATE TABLE IF NOT EXISTS psychologists (
       id SERIAL PRIMARY KEY,
       user_id INTEGER UNIQUE REFERENCES users(id) ON DELETE CASCADE,
       specialization VARCHAR(255),
@@ -99,22 +89,22 @@ const initSchema = async () => {
       status VARCHAR(20) DEFAULT 'pending',
       is_verified BOOLEAN DEFAULT false,
       created_at TIMESTAMP DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS psychologist_patients (
+    )`,
+    `CREATE TABLE IF NOT EXISTS psychologist_patients (
       id SERIAL PRIMARY KEY,
       psychologist_id INTEGER REFERENCES psychologists(id) ON DELETE CASCADE,
       patient_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
       status VARCHAR(20) DEFAULT 'pending',
       created_at TIMESTAMP DEFAULT NOW(),
       UNIQUE(psychologist_id, patient_id)
-    );
-    CREATE TABLE IF NOT EXISTS emotion_types (
+    )`,
+    `CREATE TABLE IF NOT EXISTS emotion_types (
       id SERIAL PRIMARY KEY,
       name VARCHAR(100) NOT NULL,
       color VARCHAR(20),
       emoji VARCHAR(10)
-    );
-    CREATE TABLE IF NOT EXISTS emotion_tracker (
+    )`,
+    `CREATE TABLE IF NOT EXISTS emotion_tracker (
       id SERIAL PRIMARY KEY,
       user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
       emotion_type_id INTEGER REFERENCES emotion_types(id),
@@ -122,8 +112,8 @@ const initSchema = async () => {
       created_date DATE DEFAULT CURRENT_DATE,
       created_at TIMESTAMP DEFAULT NOW(),
       UNIQUE(user_id, emotion_type_id, created_date)
-    );
-    CREATE TABLE IF NOT EXISTS smer_diary (
+    )`,
+    `CREATE TABLE IF NOT EXISTS smer_diary (
       id SERIAL PRIMARY KEY,
       user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
       entry_date DATE DEFAULT CURRENT_DATE,
@@ -134,8 +124,8 @@ const initSchema = async () => {
       selected_emotions JSONB DEFAULT '[]',
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS comics (
+    )`,
+    `CREATE TABLE IF NOT EXISTS comics (
       id SERIAL PRIMARY KEY,
       title VARCHAR(255) NOT NULL,
       author VARCHAR(255),
@@ -144,16 +134,16 @@ const initSchema = async () => {
       pdf_url VARCHAR(255),
       is_active BOOLEAN DEFAULT true,
       created_at TIMESTAMP DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS playlists (
+    )`,
+    `CREATE TABLE IF NOT EXISTS playlists (
       id SERIAL PRIMARY KEY,
       title VARCHAR(255) NOT NULL,
       description TEXT,
       cover_image_url VARCHAR(500),
       is_active BOOLEAN DEFAULT true,
       created_at TIMESTAMP DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS tracks (
+    )`,
+    `CREATE TABLE IF NOT EXISTS tracks (
       id SERIAL PRIMARY KEY,
       playlist_id INTEGER REFERENCES playlists(id) ON DELETE CASCADE,
       title VARCHAR(255) NOT NULL,
@@ -163,31 +153,31 @@ const initSchema = async () => {
       download_url TEXT,
       source VARCHAR(50) DEFAULT 'jamendo',
       external_id VARCHAR(100)
-    );
-    CREATE TABLE IF NOT EXISTS downloaded_tracks (
+    )`,
+    `CREATE TABLE IF NOT EXISTS downloaded_tracks (
       id SERIAL PRIMARY KEY,
       user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
       track_id INTEGER REFERENCES tracks(id) ON DELETE CASCADE,
       local_path TEXT,
       created_at TIMESTAMP DEFAULT NOW(),
       UNIQUE(user_id, track_id)
-    );
-    CREATE TABLE IF NOT EXISTS playlist_favorites (
+    )`,
+    `CREATE TABLE IF NOT EXISTS playlist_favorites (
       id SERIAL PRIMARY KEY,
       user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
       playlist_id INTEGER REFERENCES playlists(id) ON DELETE CASCADE,
       created_at TIMESTAMP DEFAULT NOW(),
       UNIQUE(user_id, playlist_id)
-    );
-    CREATE TABLE IF NOT EXISTS messages (
+    )`,
+    `CREATE TABLE IF NOT EXISTS messages (
       id SERIAL PRIMARY KEY,
       sender_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
       receiver_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
       content TEXT NOT NULL,
       is_read BOOLEAN DEFAULT false,
       created_at TIMESTAMP DEFAULT NOW()
-    );
-    CREATE TABLE IF NOT EXISTS psychologist_reports (
+    )`,
+    `CREATE TABLE IF NOT EXISTS psychologist_reports (
       id SERIAL PRIMARY KEY,
       psychologist_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
       patient_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
@@ -198,12 +188,8 @@ const initSchema = async () => {
       recommendations TEXT,
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW()
-    );
-  `);
-
-  // Seed emotion types
-  await pool.query(`
-    INSERT INTO emotion_types (name, color, emoji) VALUES
+    )`,
+    `INSERT INTO emotion_types (name, color, emoji) VALUES
       ('Радость', '#FFD700', '😊'),
       ('Грусть', '#6495ED', '😢'),
       ('Тревога', '#FF8C00', '😰'),
@@ -212,8 +198,12 @@ const initSchema = async () => {
       ('Спокойствие', '#90EE90', '😌'),
       ('Удивление', '#FF69B4', '😲'),
       ('Отвращение', '#556B2F', '🤢')
-    ON CONFLICT DO NOTHING;
-  `);
+    ON CONFLICT DO NOTHING`,
+  ];
+
+  for (const query of queries) {
+    await pool.query(query);
+  }
 
   console.log(' Схема базы данных инициализирована');
 };
@@ -228,11 +218,9 @@ const startServer = async () => {
 
   await initSchema();
 
-  // Миграция: старые записи со status='approved' → 'active' (совместимость)
   try {
     const migrated = await pool.query(
-      `UPDATE psychologists SET status = 'active', is_verified = true
-       WHERE status = 'approved'`
+      `UPDATE psychologists SET status = 'active', is_verified = true WHERE status = 'approved'`
     );
     if ((migrated.rowCount ?? 0) > 0) {
       console.log(` Мигрировано психологов approved→active: ${migrated.rowCount}`);
@@ -241,7 +229,6 @@ const startServer = async () => {
     console.warn(' Миграция psychologists пропущена:', e);
   }
 
-  // Активируем аккаунты психологов 
   try {
     const activated = await pool.query(
       `UPDATE users SET is_active = true WHERE role = 'psychologist' AND is_active = false`
@@ -260,13 +247,12 @@ const startServer = async () => {
     console.warn(' Миграция comics пропущена:', e);
   }
 
-  // Инициализация плейлистов и книг
   await seedPlaylists();
   await seedComics();
 
   app.listen(PORT, () => {
     console.log(` Server is running on port ${PORT}`);
-    console.log(` JWT Secret: ${JWT_SECRET.substring(0, 3)}...`);
+    console.log(` JWT Secret: ${JWT_SECRET!.substring(0, 3)}...`);
     console.log(` JWT Expires: ${process.env.JWT_EXPIRES_IN || '7d'}`);
   });
 };
