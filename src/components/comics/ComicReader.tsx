@@ -105,7 +105,7 @@ export const ComicReader: React.FC<ComicReaderProps> = ({ visible, comicId, onCl
     }
   };
 
-  const SERVER_BASE = 'http://127.0.0.1:3001';
+  const SERVER_BASE = 'https://thestillness-production.up.railway.app';
 
   const loadComicData = async () => {
     try {

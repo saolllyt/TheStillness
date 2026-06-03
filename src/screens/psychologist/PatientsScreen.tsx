@@ -16,12 +16,21 @@ export const PatientsScreen = ({ navigation, route }: any) => {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'active' | 'pending'>(initialTab);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
+  const [unreadMap, setUnreadMap] = useState<Record<number, number>>({});
 
   const loadPatients = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/psychologist/patients');
-      setPatients(response.data.data || []);
+      const [patientsRes, dialogsRes] = await Promise.all([
+        api.get('/psychologist/patients'),
+        api.get('/psychologist/dialogs').catch(() => ({ data: { data: [] } })),
+      ]);
+      setPatients(patientsRes.data.data || []);
+      const map: Record<number, number> = {};
+      for (const d of (dialogsRes.data.data || [])) {
+        if (d.unread_count > 0) map[d.other_user_id] = d.unread_count;
+      }
+      setUnreadMap(map);
     } catch (error) {
       console.error('Load patients error:', error);
     } finally {
@@ -125,7 +134,14 @@ export const PatientsScreen = ({ navigation, route }: any) => {
           </Text>
         </View>
         <View style={styles.info}>
-          <Text style={styles.name}>{getFullName(item)}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={styles.name}>{getFullName(item)}</Text>
+            {unreadMap[item.id] > 0 && (
+              <View style={styles.unreadDot}>
+                <Text style={styles.unreadText}>{unreadMap[item.id]}</Text>
+              </View>
+            )}
+          </View>
           <Text style={styles.email}>{item.email}</Text>
         </View>
       </View>
@@ -351,6 +367,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  unreadDot: {
+    minWidth: 18, height: 18,
+    borderRadius: 9,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  unreadText: { color: COLORS.white, fontSize: 10, fontWeight: '700' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   emptyContainer: {
     flex: 1, justifyContent: 'center', alignItems: 'center',

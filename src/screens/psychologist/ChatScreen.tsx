@@ -61,8 +61,15 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
 
   const loadReports = async () => {
     try {
-      const response = await api.get('/profile/report/list');
-      setReports(response.data.data || []);
+      if ((user as any)?.role === 'psychologist') {
+        // Психолог отправляет клинические отчёты
+        const response = await api.get(`/psychologist-reports?patientId=${otherUserId}`);
+        setReports(response.data.data || []);
+      } else {
+        // Пациент отправляет мониторинговые отчёты
+        const response = await api.get('/profile/report/list');
+        setReports(response.data.data || []);
+      }
     } catch (error) {
       console.error('Load reports error:', error);
     }
@@ -103,10 +110,23 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
 
   const handleSendReport = async (report: any) => {
     try {
-      await api.post('/psychologist/messages/report', {
-        receiverId: otherUserId,
-        reportId: report.id,
-      });
+      if ((user as any)?.role === 'psychologist') {
+        // Клинический отчёт психолога — отправляем как JSON-сообщение
+        const content = JSON.stringify({
+          type: 'psychologist_report',
+          report_date: report.report_date,
+          psych_name: `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || user?.email,
+          complaints: report.complaints,
+          recommendations: report.recommendations,
+          id: report.id,
+        });
+        await api.post('/psychologist/messages', { receiverId: otherUserId, content });
+      } else {
+        await api.post('/psychologist/messages/report', {
+          receiverId: otherUserId,
+          reportId: report.id,
+        });
+      }
       setShowReports(false);
       await loadMessages();
     } catch {
@@ -469,7 +489,9 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
             </Text>
             {reports.length === 0 ? (
               <Text style={{ ...TYPOGRAPHY.body2, color: COLORS.textLight }}>
-                Нет сгенерированных отчётов. Сначала сформируйте отчёт в профиле.
+                {(user as any)?.role === 'psychologist'
+                  ? 'Нет составленных отчётов для этого пациента.'
+                  : 'Нет сгенерированных отчётов. Сначала сформируйте отчёт в профиле.'}
               </Text>
             ) : (
               reports.slice(0, 5).map((report) => (
@@ -488,7 +510,9 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
                   <Feather name="file-text" size={16} color={COLORS.primary} />
                   <View style={{ flex: 1 }}>
                     <Text style={{ ...TYPOGRAPHY.body2, color: COLORS.text }}>
-                      {report.start_date} — {report.end_date}
+                      {(user as any)?.role === 'psychologist'
+                        ? `Отчёт от ${new Date(report.report_date).toLocaleDateString('ru-RU')}`
+                        : `${report.start_date} — ${report.end_date}`}
                     </Text>
                     <Text style={{ ...TYPOGRAPHY.caption, color: COLORS.textLight }}>
                       Нажмите чтобы отправить

@@ -217,6 +217,8 @@ const initSchema = async () => {
       ('Удивление', '#FF69B4', '😲'),
       ('Отвращение', '#556B2F', '🤢')
     ON CONFLICT DO NOTHING`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_psych_patient_unique
+     ON psychologist_patients(psychologist_id, patient_id)`,
     `INSERT INTO psychologists (user_id, specialization, license_number, status, is_verified)
      SELECT id, 'Не указана', 'Не указан', 'pending', false
      FROM users
