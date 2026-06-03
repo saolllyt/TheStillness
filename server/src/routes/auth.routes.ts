@@ -156,7 +156,6 @@ router.get('/me', verifyToken, AuthController.getMe);
  *               $ref: '#/components/schemas/SuccessResponse'
  */
 router.post('/forgot-password', AuthController.forgotPassword);
-router.get('/test-email', AuthController.testEmail);
 
 /**
  * @swagger

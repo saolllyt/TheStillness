@@ -314,16 +314,6 @@ static async deleteAccount(req: Request, res: Response) {
   }
 }
 
-static async testEmail(req: Request, res: Response) {
-  try {
-    const { sendResetCode } = await import('../services/email.service');
-    await sendResetCode(req.query.to as string || 'test@test.com', '123456');
-    res.json({ success: true, message: 'Email отправлен' });
-  } catch (error: any) {
-    res.json({ success: false, error: error.message, code: error.code, response: error.response });
-  }
-}
-
 static async resetPassword(req: Request, res: Response) {
   try {
     const { email, code, newPassword } = req.body;
