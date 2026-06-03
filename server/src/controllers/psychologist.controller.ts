@@ -208,14 +208,10 @@ export class PsychologistController {
       if (isNaN(patientId)) {
         return res.status(400).json({ success: false, message: 'Неверный ID пациента' });
       }
-      const psych = await PsychologistModel.findByUserId(psychologistUserId);
-      if (!psych) {
-        return res.status(403).json({ success: false, message: 'Не найден профиль психолога' });
-      }
       const { pool } = await import('../config/database');
       await pool.query(
         'DELETE FROM psychologist_patients WHERE psychologist_id = $1 AND patient_id = $2',
-        [psych.psychologist_id, patientId]
+        [psychologistUserId, patientId]
       );
       res.json({ success: true, message: 'Пациент удалён' });
     } catch (error) {

@@ -1,14 +1,19 @@
 import nodemailer from 'nodemailer';
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
-  connectionTimeout: 5000,  // 5 сек на подключение
-  greetingTimeout: 5000,    // 5 сек на приветствие SMTP
-  socketTimeout: 10000,     // 10 сек на передачу данных
+  tls: {
+    rejectUnauthorized: false,
+  },
+  connectionTimeout: 15000,
+  greetingTimeout: 15000,
+  socketTimeout: 30000,
 });
 
 export const sendResetCode = async (email: string, code: string): Promise<void> => {
