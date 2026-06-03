@@ -79,13 +79,154 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+const initSchema = async () => {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      email VARCHAR(255) UNIQUE NOT NULL,
+      password_hash VARCHAR(255) NOT NULL,
+      first_name VARCHAR(100),
+      last_name VARCHAR(100),
+      role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'psychologist', 'admin')),
+      is_active BOOLEAN DEFAULT true,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS psychologists (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+      specialization VARCHAR(255),
+      license_number VARCHAR(100),
+      status VARCHAR(20) DEFAULT 'pending',
+      is_verified BOOLEAN DEFAULT false,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS psychologist_patients (
+      id SERIAL PRIMARY KEY,
+      psychologist_id INTEGER REFERENCES psychologists(id) ON DELETE CASCADE,
+      patient_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      status VARCHAR(20) DEFAULT 'pending',
+      created_at TIMESTAMP DEFAULT NOW(),
+      UNIQUE(psychologist_id, patient_id)
+    );
+    CREATE TABLE IF NOT EXISTS emotion_types (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(100) NOT NULL,
+      color VARCHAR(20),
+      emoji VARCHAR(10)
+    );
+    CREATE TABLE IF NOT EXISTS emotion_tracker (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      emotion_type_id INTEGER REFERENCES emotion_types(id),
+      intensity INTEGER CHECK (intensity BETWEEN 1 AND 10),
+      created_date DATE DEFAULT CURRENT_DATE,
+      created_at TIMESTAMP DEFAULT NOW(),
+      UNIQUE(user_id, emotion_type_id, created_date)
+    );
+    CREATE TABLE IF NOT EXISTS smer_diary (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      entry_date DATE DEFAULT CURRENT_DATE,
+      situation_place VARCHAR(255),
+      situation_description TEXT NOT NULL,
+      thoughts TEXT NOT NULL,
+      reaction_description TEXT NOT NULL,
+      selected_emotions JSONB DEFAULT '[]',
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS comics (
+      id SERIAL PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      author VARCHAR(255),
+      description TEXT,
+      cover_image_url VARCHAR(500),
+      pdf_url VARCHAR(255),
+      is_active BOOLEAN DEFAULT true,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS playlists (
+      id SERIAL PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      description TEXT,
+      cover_image_url VARCHAR(500),
+      is_active BOOLEAN DEFAULT true,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS tracks (
+      id SERIAL PRIMARY KEY,
+      playlist_id INTEGER REFERENCES playlists(id) ON DELETE CASCADE,
+      title VARCHAR(255) NOT NULL,
+      artist VARCHAR(255),
+      duration_seconds INTEGER,
+      audio_url TEXT NOT NULL,
+      download_url TEXT,
+      source VARCHAR(50) DEFAULT 'jamendo',
+      external_id VARCHAR(100)
+    );
+    CREATE TABLE IF NOT EXISTS downloaded_tracks (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      track_id INTEGER REFERENCES tracks(id) ON DELETE CASCADE,
+      local_path TEXT,
+      created_at TIMESTAMP DEFAULT NOW(),
+      UNIQUE(user_id, track_id)
+    );
+    CREATE TABLE IF NOT EXISTS playlist_favorites (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      playlist_id INTEGER REFERENCES playlists(id) ON DELETE CASCADE,
+      created_at TIMESTAMP DEFAULT NOW(),
+      UNIQUE(user_id, playlist_id)
+    );
+    CREATE TABLE IF NOT EXISTS messages (
+      id SERIAL PRIMARY KEY,
+      sender_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      receiver_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      content TEXT NOT NULL,
+      is_read BOOLEAN DEFAULT false,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS psychologist_reports (
+      id SERIAL PRIMARY KEY,
+      psychologist_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      patient_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      report_date DATE NOT NULL,
+      complaints TEXT,
+      anamnesis TEXT,
+      examinations TEXT,
+      recommendations TEXT,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    );
+  `);
+
+  // Seed emotion types
+  await pool.query(`
+    INSERT INTO emotion_types (name, color, emoji) VALUES
+      ('Радость', '#FFD700', '😊'),
+      ('Грусть', '#6495ED', '😢'),
+      ('Тревога', '#FF8C00', '😰'),
+      ('Злость', '#DC143C', '😠'),
+      ('Страх', '#8B008B', '😨'),
+      ('Спокойствие', '#90EE90', '😌'),
+      ('Удивление', '#FF69B4', '😲'),
+      ('Отвращение', '#556B2F', '🤢')
+    ON CONFLICT DO NOTHING;
+  `);
+
+  console.log(' Схема базы данных инициализирована');
+};
+
 const startServer = async () => {
   const isConnected = await testConnection();
-  
+
   if (!isConnected) {
     console.error(' Failed to connect to database. Exiting...');
     process.exit(1);
   }
+
+  await initSchema();
 
   // Миграция: старые записи со status='approved' → 'active' (совместимость)
   try {
