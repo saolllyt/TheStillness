@@ -110,7 +110,7 @@ export const PsychologistHomeScreen = ({ navigation }: any) => {
 
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={() => navigation.navigate('Patients')}
+              onPress={() => navigation.navigate('Patients', { initialTab: 'pending' })}
             >
               <View style={styles.actionIconBadge}>
                 <View style={styles.actionIcon}>

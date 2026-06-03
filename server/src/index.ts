@@ -189,6 +189,24 @@ const initSchema = async () => {
       created_at TIMESTAMP DEFAULT NOW(),
       updated_at TIMESTAMP DEFAULT NOW()
     )`,
+    `CREATE TABLE IF NOT EXISTS reports (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      report_type VARCHAR(50) DEFAULT 'monitoring',
+      start_date DATE,
+      end_date DATE,
+      report_content JSONB,
+      psychologist_email VARCHAR(255),
+      sent_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT NOW()
+    )`,
+    `CREATE TABLE IF NOT EXISTS password_reset_codes (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      code VARCHAR(10) NOT NULL,
+      expires_at TIMESTAMP NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    )`,
     `INSERT INTO emotion_types (name, color, emoji) VALUES
       ('Радость', '#FFD700', '😊'),
       ('Грусть', '#6495ED', '😢'),
@@ -198,6 +216,12 @@ const initSchema = async () => {
       ('Спокойствие', '#90EE90', '😌'),
       ('Удивление', '#FF69B4', '😲'),
       ('Отвращение', '#556B2F', '🤢')
+    ON CONFLICT DO NOTHING`,
+    `INSERT INTO psychologists (user_id, specialization, license_number, status, is_verified)
+     SELECT id, 'Не указана', 'Не указан', 'pending', false
+     FROM users
+     WHERE role = 'psychologist'
+       AND id NOT IN (SELECT user_id FROM psychologists WHERE user_id IS NOT NULL)
     ON CONFLICT DO NOTHING`,
   ];
 

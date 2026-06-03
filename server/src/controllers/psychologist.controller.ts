@@ -200,6 +200,30 @@ export class PsychologistController {
     }
   }
 
+  // Удалить пациента из списка
+  static async removePatient(req: Request, res: Response) {
+    try {
+      const psychologistUserId = (req as any).userId;
+      const patientId = parseInt(req.params.patientId as string, 10);
+      if (isNaN(patientId)) {
+        return res.status(400).json({ success: false, message: 'Неверный ID пациента' });
+      }
+      const psych = await PsychologistModel.findByUserId(psychologistUserId);
+      if (!psych) {
+        return res.status(403).json({ success: false, message: 'Не найден профиль психолога' });
+      }
+      const { pool } = await import('../config/database');
+      await pool.query(
+        'DELETE FROM psychologist_patients WHERE psychologist_id = $1 AND patient_id = $2',
+        [psych.psychologist_id, patientId]
+      );
+      res.json({ success: true, message: 'Пациент удалён' });
+    } catch (error) {
+      console.error('Remove patient error:', error);
+      res.status(500).json({ success: false, message: 'Ошибка при удалении пациента' });
+    }
+  }
+
   // Количество непрочитанных
   static async getUnreadCount(req: Request, res: Response) {
     try {

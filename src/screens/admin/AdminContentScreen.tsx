@@ -132,7 +132,8 @@ export const AdminContentScreen = () => {
       form.append('pdf', { uri: addPdfFile.uri, name: addPdfFile.name, type: addPdfFile.mimeType } as any);
 
       const token = await (await import('@react-native-async-storage/async-storage')).default.getItem('@TheStillness:token');
-      const response = await fetch('http://127.0.0.1:3001/api/admin/comics', {
+      const uploadUrl = `${api.defaults.baseURL}/admin/comics`;
+      const response = await fetch(uploadUrl, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: form,

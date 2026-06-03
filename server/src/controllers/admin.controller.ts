@@ -259,7 +259,7 @@ static async createAdmin(req: Request, res: Response) {
     const result = await pool.query(
       `INSERT INTO users (email, password_hash, first_name, last_name, role, is_active)
        VALUES ($1, $2, $3, $4, 'admin', true)
-       RETURNING id, email, first_name, last_name, role`,
+       RETURNING id, email, first_name, last_name, role, is_active`,
       [email.toLowerCase(), password_hash, firstName || null, lastName || null]
     );
 

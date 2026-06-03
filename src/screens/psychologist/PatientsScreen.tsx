@@ -9,11 +9,12 @@ import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
 import api from '../../services/api/client';
 
-export const PatientsScreen = ({ navigation }: any) => {
+export const PatientsScreen = ({ navigation, route }: any) => {
+  const initialTab = route?.params?.initialTab || 'active';
   const [patients, setPatients] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'active' | 'pending'>('active');
+  const [activeTab, setActiveTab] = useState<'active' | 'pending'>(initialTab);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
 
   const loadPatients = async () => {
@@ -43,6 +44,27 @@ export const PatientsScreen = ({ navigation }: any) => {
             loadPatients();
           } catch {
             Alert.alert('Ошибка', 'Не удалось обновить статус');
+          } finally {
+            setUpdatingId(null);
+          }
+        }
+      }
+    ]);
+  };
+
+  const handleRemove = async (patient: any) => {
+    Alert.alert('Удалить пациента', `Удалить ${getFullName(patient)} из вашего списка?`, [
+      { text: 'Отмена', style: 'cancel' },
+      {
+        text: 'Удалить',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            setUpdatingId(patient.id);
+            await api.delete(`/psychologist/patients/${patient.id}`);
+            loadPatients();
+          } catch {
+            Alert.alert('Ошибка', 'Не удалось удалить пациента');
           } finally {
             setUpdatingId(null);
           }
@@ -153,6 +175,13 @@ export const PatientsScreen = ({ navigation }: any) => {
           >
             <Feather name="file-plus" size={16} color={COLORS.primary} />
             <Text style={styles.reportButtonText}>Отчёт</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.removeButton}
+            onPress={() => handleRemove(item)}
+            disabled={updatingId === item.id}
+          >
+            <Feather name="user-x" size={16} color={COLORS.error} />
           </TouchableOpacity>
         </View>
       )}
@@ -314,6 +343,14 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary, gap: 4,
   },
   reportButtonText: { ...TYPOGRAPHY.body2, color: COLORS.primary, fontWeight: '500' },
+  removeButton: {
+    width: 36, height: 36,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1.5,
+    borderColor: COLORS.error,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   emptyContainer: {
     flex: 1, justifyContent: 'center', alignItems: 'center',

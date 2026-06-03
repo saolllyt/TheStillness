@@ -76,6 +76,7 @@ router.get('/list', PsychologistController.getAll);
  */
 router.post('/request', PsychologistController.sendRequest);
 router.delete('/request/:psychologistUserId', PsychologistController.cancelRequest);
+router.delete('/patients/:patientId', PsychologistController.removePatient);
 
 /**
  * @swagger
