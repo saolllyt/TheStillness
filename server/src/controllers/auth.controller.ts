@@ -268,8 +268,9 @@ export class AuthController {
       ...(process.env.NODE_ENV === 'development' && { dev_code: code }),
     });
 
-    sendResetCode(email, code).catch(() => {
-      console.warn('⚠️ Email не отправлен. Код для разработки:', code);
+    sendResetCode(email, code).catch((err: any) => {
+      console.error('❌ Email не отправлен. Ошибка:', err?.message || err);
+      console.warn('Код для разработки:', code);
     });
   } catch (error) {
     console.error('Forgot password error:', error);
