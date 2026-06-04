@@ -111,16 +111,11 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
   const handleSendReport = async (report: any) => {
     try {
       if ((user as any)?.role === 'psychologist') {
-        // Клинический отчёт психолога — отправляем как JSON-сообщение
-        const content = JSON.stringify({
-          type: 'psychologist_report',
-          report_date: report.report_date,
-          psych_name: `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || user?.email,
-          complaints: report.complaints,
-          recommendations: report.recommendations,
-          id: report.id,
+        // Сервер сам формирует JSON — минуя sanitize middleware
+        await api.post('/psychologist/messages/psych-report', {
+          receiverId: otherUserId,
+          reportId: report.id,
         });
-        await api.post('/psychologist/messages', { receiverId: otherUserId, content });
       } else {
         await api.post('/psychologist/messages/report', {
           receiverId: otherUserId,

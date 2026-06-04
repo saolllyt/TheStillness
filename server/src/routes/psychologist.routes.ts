@@ -301,6 +301,7 @@ router.post('/messages', PsychologistController.sendMessage);
  *               $ref: '#/components/schemas/SuccessResponse'
  */
 router.post('/messages/report', PsychologistController.sendReport);
+router.post('/messages/psych-report', PsychologistController.sendPsychReport);
 
 /**
  * @swagger

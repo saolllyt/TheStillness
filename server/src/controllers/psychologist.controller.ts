@@ -169,6 +169,42 @@ export class PsychologistController {
     }
   }
 
+  // Отправить клинический отчёт психолога в чат (создаём JSON на сервере)
+  static async sendPsychReport(req: Request, res: Response) {
+    try {
+      const senderId = (req as any).userId;
+      const { receiverId, reportId } = req.body;
+      if (!receiverId || !reportId) {
+        return res.status(400).json({ success: false, message: 'Не указаны обязательные поля' });
+      }
+      const { pool } = await import('../config/database');
+      const reportRes = await pool.query(
+        `SELECT pr.*, u.first_name as psych_first, u.last_name as psych_last
+         FROM psychologist_reports pr
+         JOIN users u ON pr.psychologist_id = u.id
+         WHERE pr.id = $1 AND pr.psychologist_id = $2`,
+        [reportId, senderId]
+      );
+      if (!reportRes.rows[0]) {
+        return res.status(404).json({ success: false, message: 'Отчёт не найден' });
+      }
+      const report = reportRes.rows[0];
+      const content = JSON.stringify({
+        type: 'psychologist_report',
+        report_date: report.report_date,
+        psych_name: `${report.psych_first || ''} ${report.psych_last || ''}`.trim(),
+        complaints: report.complaints,
+        recommendations: report.recommendations,
+        id: report.id,
+      });
+      const message = await MessageModel.create(senderId, receiverId, content);
+      res.status(201).json({ success: true, data: message });
+    } catch (error) {
+      console.error('Send psych report error:', error);
+      res.status(500).json({ success: false, message: 'Ошибка при отправке отчёта' });
+    }
+  }
+
   // Отправить отчёт в чат
   static async sendReport(req: Request, res: Response) {
     try {
