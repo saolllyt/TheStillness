@@ -45,7 +45,8 @@ export class MessageModel {
     } catch {}
     if (body.length > 100) body = body.slice(0, 97) + '...';
 
-    await fetch('https://exp.host/--/api/v2/push/send', {
+    console.log(` Push: отправка на токен ${push_token.slice(0, 40)}...`);
+    const pushRes = await fetch('https://exp.host/--/api/v2/push/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify({
@@ -56,6 +57,8 @@ export class MessageModel {
         data: { senderId: sender_id },
       }),
     });
+    const pushJson = await pushRes.json() as any;
+    console.log(` Push результат:`, JSON.stringify(pushJson));
   }
 
   // Получить переписку между двумя пользователями
