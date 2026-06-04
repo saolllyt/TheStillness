@@ -219,11 +219,14 @@ router.post('/push-token', async (req, res) => {
   try {
     const userId = (req as any).userId;
     const { pushToken } = req.body;
+    console.log(` Push-token запрос: userId=${userId}, token=${pushToken ? pushToken.slice(0, 30) + '...' : 'ПУСТО'}`);
     if (!pushToken) return res.status(400).json({ success: false, message: 'pushToken не указан' });
     const { pool } = await import('../config/database');
     await pool.query('UPDATE users SET push_token = $1 WHERE id = $2', [pushToken, userId]);
+    console.log(` Push-токен сохранён для userId=${userId}`);
     res.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
+    console.error(` Push-token ошибка:`, error?.message);
     res.status(500).json({ success: false, message: 'Ошибка' });
   }
 });
