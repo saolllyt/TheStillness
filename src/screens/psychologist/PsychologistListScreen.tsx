@@ -43,18 +43,26 @@ export const PsychologistListScreen: React.FC<PsychologistListScreenProps> = ({ 
   const [cancelling, setCancelling] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [mySearch, setMySearch] = useState('');
+  const [unreadMap, setUnreadMap] = useState<Record<number, number>>({});
   useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
 
-  // Загрузка данных 
+  // Загрузка данных
   const loadData = async () => {
     try {
       setLoading(true);
-      const [allRes, myRes] = await Promise.all([
+      const [allRes, myRes, dialogsRes] = await Promise.all([
         api.get('/psychologist/list'),
         api.get('/psychologist/my'),
+        api.get('/psychologist/dialogs').catch(() => ({ data: { data: [] } })),
       ]);
       setAllPsychologists(allRes.data.data || []);
       setMyPsychologists(myRes.data.data || []);
+      const map: Record<number, number> = {};
+      for (const d of (dialogsRes.data.data || [])) {
+        const cnt = Number(d.unread_count);
+        if (cnt > 0) map[d.other_user_id] = cnt;
+      }
+      setUnreadMap(map);
     } catch {
       console.error('Load psychologists error');
     } finally {
@@ -222,6 +230,7 @@ export const PsychologistListScreen: React.FC<PsychologistListScreenProps> = ({ 
 
   const renderMyItem = ({ item }: { item: any }) => {
     const isCancelling = cancelling === item.id;
+    const unread = unreadMap[item.id] || 0;
     return (
       <View style={styles.card}>
         <View style={styles.cardHeader}>
@@ -231,7 +240,14 @@ export const PsychologistListScreen: React.FC<PsychologistListScreenProps> = ({ 
             </Text>
           </View>
           <View style={styles.cardInfo}>
-            <Text style={styles.cardName}>{getName(item)}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={styles.cardName}>{getName(item)}</Text>
+              {unread > 0 && (
+                <View style={styles.unreadDot}>
+                  <Text style={styles.unreadText}>{unread}</Text>
+                </View>
+              )}
+            </View>
             {item.specialization && (
               <View style={styles.specTag}>
                 <Text style={styles.specTagText} numberOfLines={1}>{item.specialization}</Text>
@@ -571,4 +587,10 @@ const styles = StyleSheet.create({
     marginTop: SPACING.sm,
   },
   goBtnText: { ...TYPOGRAPHY.body1, color: COLORS.white, fontWeight: '600' },
+  unreadDot: {
+    minWidth: 18, height: 18, borderRadius: 9,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4,
+  },
+  unreadText: { color: COLORS.white, fontSize: 10, fontWeight: '700' },
 });
