@@ -1,8 +1,5 @@
 import nodemailer from 'nodemailer';
-import dns from 'dns';
-
-// Railway использует IPv6 по умолчанию, Gmail не принимает IPv6 — форсируем IPv4
-dns.setDefaultResultOrder('ipv4first');
+import { resolve4 } from 'dns/promises';
 
 export const sendResetCode = async (email: string, code: string): Promise<void> => {
   const user = process.env.EMAIL_USER;
@@ -11,14 +8,20 @@ export const sendResetCode = async (email: string, code: string): Promise<void> 
 
   console.log(` Отправка кода на ${email}...`);
 
+  // Резолвим smtp.gmail.com вручную в IPv4 — Railway по умолчанию возвращает IPv6
+  const [ipv4] = await resolve4('smtp.gmail.com');
+  console.log(` SMTP IPv4: ${ipv4}`);
+
   const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
+    host: ipv4,
     port: 587,
     secure: false,
     auth: { user, pass },
-    tls: { rejectUnauthorized: false },
-    family: 4,
-  } as any);
+    tls: {
+      rejectUnauthorized: false,
+      servername: 'smtp.gmail.com',
+    },
+  });
 
   await transporter.sendMail({
     from: `"TheStillness" <${user}>`,
