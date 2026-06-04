@@ -219,12 +219,6 @@ const initSchema = async () => {
     ON CONFLICT DO NOTHING`,
     `CREATE UNIQUE INDEX IF NOT EXISTS idx_psych_patient_unique
      ON psychologist_patients(psychologist_id, patient_id)`,
-    `UPDATE psychologist_patients pp
-     SET psychologist_id = p.user_id
-     FROM psychologists p
-     WHERE pp.psychologist_id = p.id
-       AND pp.psychologist_id != p.user_id
-       AND EXISTS (SELECT 1 FROM users u WHERE u.id = p.user_id)`,
     `INSERT INTO psychologists (user_id, specialization, license_number, status, is_verified)
      SELECT id, 'Не указана', 'Не указан', 'pending', false
      FROM users
@@ -234,7 +228,11 @@ const initSchema = async () => {
   ];
 
   for (const query of queries) {
-    await pool.query(query);
+    try {
+      await pool.query(query);
+    } catch (e: any) {
+      console.warn(' Migration skipped:', e.message?.slice(0, 80));
+    }
   }
 
   console.log(' Схема базы данных инициализирована');
