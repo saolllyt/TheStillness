@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "547230923438",
+    "project_id": "thestillness",
+    "storage_bucket": "thestillness.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:547230923438:android:de7d359ab6926f14940b3f",
+        "android_client_info": {
+          "package_name": "com.thestillness.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCogGgaQgOXDwQD6kYRX6vbwfriddibSvw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
