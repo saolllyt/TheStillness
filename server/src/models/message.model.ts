@@ -22,7 +22,10 @@ export class MessageModel {
       'SELECT push_token, first_name, last_name, email FROM users WHERE id = $1 AND push_token IS NOT NULL',
       [receiver_id]
     );
-    if (!tokenRes.rows[0]) return;
+    if (!tokenRes.rows[0]) {
+      console.log(` Push: у пользователя id=${receiver_id} нет push-токена`);
+      return;
+    }
     const { push_token } = tokenRes.rows[0];
 
     const senderRes = await pool.query(
