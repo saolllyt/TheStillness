@@ -33,7 +33,7 @@ export const PsychologistHomeScreen = ({ navigation }: any) => {
       const activePatients = patients.filter((p: any) => p.status === 'active');
       const pendingPatients = patients.filter((p: any) => p.status === 'pending');
       setStats({
-        totalPatients: patients.length,
+        totalPatients: activePatients.length,
         activePatients: activePatients.length,
         pendingRequests: pendingPatients.length,
         unreadMessages: unreadRes.data.data?.count || 0,
