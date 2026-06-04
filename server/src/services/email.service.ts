@@ -1,40 +1,44 @@
 export const sendResetCode = async (email: string, code: string): Promise<void> => {
-  const apiKey = process.env.BREVO_API_KEY;
-  if (!apiKey) throw new Error('BREVO_API_KEY не настроен');
+  const apiKey = process.env.SENDGRID_API_KEY;
+  if (!apiKey) throw new Error('SENDGRID_API_KEY не настроен');
 
   console.log(` Отправка кода на ${email}...`);
 
-  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+  const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
     method: 'POST',
     headers: {
-      'api-key': apiKey,
+      'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
     },
     body: JSON.stringify({
-      sender: { name: 'TheStillness', email: 'noreply@thestillness.app' },
-      to: [{ email }],
+      personalizations: [{ to: [{ email }] }],
+      from: { email: 'noreply@thestillness.app', name: 'TheStillness' },
       subject: 'Восстановление пароля — TheStillness',
-      htmlContent: `
-        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;">
-          <h2 style="color: #004a7c;">Восстановление пароля</h2>
-          <p>Вы запросили сброс пароля для вашего аккаунта TheStillness.</p>
-          <p>Ваш код подтверждения:</p>
-          <div style="background: #e8f1f5; border-radius: 8px; padding: 24px; text-align: center; margin: 24px 0;">
-            <span style="font-size: 36px; font-weight: 700; letter-spacing: 8px; color: #004a7c;">
-              ${code}
-            </span>
-          </div>
-          <p style="color: #666;">Код действителен в течение 15 минут.</p>
-          <p style="color: #666;">Если вы не запрашивали сброс пароля — проигнорируйте это письмо.</p>
-        </div>
-      `,
+      content: [
+        {
+          type: 'text/html',
+          value: `
+            <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;">
+              <h2 style="color: #004a7c;">Восстановление пароля</h2>
+              <p>Вы запросили сброс пароля для вашего аккаунта TheStillness.</p>
+              <p>Ваш код подтверждения:</p>
+              <div style="background: #e8f1f5; border-radius: 8px; padding: 24px; text-align: center; margin: 24px 0;">
+                <span style="font-size: 36px; font-weight: 700; letter-spacing: 8px; color: #004a7c;">
+                  ${code}
+                </span>
+              </div>
+              <p style="color: #666;">Код действителен в течение 15 минут.</p>
+              <p style="color: #666;">Если вы не запрашивали сброс пароля — проигнорируйте это письмо.</p>
+            </div>
+          `,
+        },
+      ],
     }),
   });
 
   if (!response.ok) {
-    const err = await response.json() as any;
-    throw new Error(err.message || `Brevo error: ${response.status}`);
+    const text = await response.text();
+    throw new Error(`SendGrid error ${response.status}: ${text.slice(0, 200)}`);
   }
 
   console.log(` Письмо успешно отправлено на ${email}`);
