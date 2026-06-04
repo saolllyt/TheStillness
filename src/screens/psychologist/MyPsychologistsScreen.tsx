@@ -22,12 +22,21 @@ export const MyPsychologistsScreen: React.FC<MyPsychologistsScreenProps> = ({ na
   const [psychologists, setPsychologists] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [unreadMap, setUnreadMap] = useState<Record<number, number>>({});
 
   const loadData = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/psychologist/my');
-      setPsychologists(response.data.data || []);
+      const [psychRes, dialogsRes] = await Promise.all([
+        api.get('/psychologist/my'),
+        api.get('/psychologist/dialogs').catch(() => ({ data: { data: [] } })),
+      ]);
+      setPsychologists(psychRes.data.data || []);
+      const map: Record<number, number> = {};
+      for (const d of (dialogsRes.data.data || [])) {
+        if (d.unread_count > 0) map[d.other_user_id] = d.unread_count;
+      }
+      setUnreadMap(map);
     } catch (error) {
       console.error('Load my psychologists error:', error);
     } finally {
@@ -73,7 +82,14 @@ export const MyPsychologistsScreen: React.FC<MyPsychologistsScreenProps> = ({ na
         </Text>
       </View>
       <View style={styles.info}>
-        <Text style={styles.name}>{getFullName(item)}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Text style={styles.name}>{getFullName(item)}</Text>
+          {unreadMap[item.id] > 0 && (
+            <View style={styles.unreadDot}>
+              <Text style={styles.unreadText}>{unreadMap[item.id]}</Text>
+            </View>
+          )}
+        </View>
         {item.specialization && (
           <Text style={styles.specialization}>{item.specialization}</Text>
         )}
@@ -213,4 +229,13 @@ const styles = StyleSheet.create({
     marginTop: SPACING.sm,
   },
   goToListText: { ...TYPOGRAPHY.body1, color: COLORS.white, fontWeight: '600' },
+  unreadDot: {
+    minWidth: 18, height: 18,
+    borderRadius: 9,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  unreadText: { color: COLORS.white, fontSize: 10, fontWeight: '700' },
 });

@@ -38,7 +38,8 @@ export class PsychologistReportController {
   static async getAll(req: Request, res: Response) {
     try {
       const psychologistId = (req as any).userId;
-      const reports = await PsychologistReportModel.findByPsychologist(psychologistId);
+      const patientId = req.query.patientId ? Number(req.query.patientId) : undefined;
+      const reports = await PsychologistReportModel.findByPsychologist(psychologistId, patientId);
       res.json({ success: true, data: reports });
     } catch (error) {
       console.error('Get psych reports error:', error);

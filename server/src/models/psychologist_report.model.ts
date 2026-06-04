@@ -28,9 +28,15 @@ export class PsychologistReportModel {
     return result.rows[0];
   }
 
-  static async findByPsychologist(psychologist_id: number): Promise<any[]> {
+  static async findByPsychologist(psychologist_id: number, patient_id?: number): Promise<any[]> {
+    const conditions = ['pr.psychologist_id = $1'];
+    const params: any[] = [psychologist_id];
+    if (patient_id) {
+      params.push(patient_id);
+      conditions.push(`pr.patient_id = $${params.length}`);
+    }
     const query = `
-      SELECT 
+      SELECT
         pr.*,
         u.first_name as patient_first_name,
         u.last_name as patient_last_name,
@@ -40,10 +46,10 @@ export class PsychologistReportModel {
       FROM psychologist_reports pr
       JOIN users u ON pr.patient_id = u.id
       JOIN users p ON pr.psychologist_id = p.id
-      WHERE pr.psychologist_id = $1
+      WHERE ${conditions.join(' AND ')}
       ORDER BY pr.report_date DESC
     `;
-    const result = await pool.query(query, [psychologist_id]);
+    const result = await pool.query(query, params);
     return result.rows;
   }
 

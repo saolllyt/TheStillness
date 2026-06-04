@@ -1,20 +1,21 @@
 export const sendResetCode = async (email: string, code: string): Promise<void> => {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) throw new Error('RESEND_API_KEY не настроен');
+  const apiKey = process.env.BREVO_API_KEY;
+  if (!apiKey) throw new Error('BREVO_API_KEY не настроен');
 
-  console.log(` Отправка кода ${code} на ${email}...`);
+  console.log(` Отправка кода на ${email}...`);
 
-  const response = await fetch('https://api.resend.com/emails', {
+  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${apiKey}`,
+      'api-key': apiKey,
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
     },
     body: JSON.stringify({
-      from: 'TheStillness <onboarding@resend.dev>',
-      to: [email],
+      sender: { name: 'TheStillness', email: 'noreply@thestillness.app' },
+      to: [{ email }],
       subject: 'Восстановление пароля — TheStillness',
-      html: `
+      htmlContent: `
         <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;">
           <h2 style="color: #004a7c;">Восстановление пароля</h2>
           <p>Вы запросили сброс пароля для вашего аккаунта TheStillness.</p>
@@ -33,7 +34,7 @@ export const sendResetCode = async (email: string, code: string): Promise<void> 
 
   if (!response.ok) {
     const err = await response.json() as any;
-    throw new Error(err.message || `Resend error: ${response.status}`);
+    throw new Error(err.message || `Brevo error: ${response.status}`);
   }
 
   console.log(` Письмо успешно отправлено на ${email}`);

@@ -191,11 +191,13 @@ export class PsychologistController {
       const report = reportRes.rows[0];
       const content = JSON.stringify({
         type: 'psychologist_report',
+        id: report.id,
         report_date: report.report_date,
         psych_name: `${report.psych_first || ''} ${report.psych_last || ''}`.trim(),
         complaints: report.complaints,
+        anamnesis: report.anamnesis,
+        examinations: report.examinations,
         recommendations: report.recommendations,
-        id: report.id,
       });
       const message = await MessageModel.create(senderId, receiverId, content);
       res.status(201).json({ success: true, data: message });

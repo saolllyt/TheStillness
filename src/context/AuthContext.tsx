@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api, { setUnauthorizedHandler } from '../services/api/client';
-import { setupDailyReminder } from '../services/notification.service';
+import { setupDailyReminder, registerPushToken } from '../services/notification.service';
 
 interface User {
   id: number;
@@ -38,10 +38,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loadStoredData();
   }, []);
 
-  // Ежедневное напоминание при авторизации
+  // Ежедневное напоминание + push-токен при авторизации
   useEffect(() => {
     if (user) {
       setupDailyReminder().catch(console.error);
+      registerPushToken().catch(console.error);
     }
   }, [user?.id]);
 

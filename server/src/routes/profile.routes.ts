@@ -215,4 +215,17 @@ router.get('/report/list', async (req, res) => {
   }
 });
 
+router.post('/push-token', async (req, res) => {
+  try {
+    const userId = (req as any).userId;
+    const { pushToken } = req.body;
+    if (!pushToken) return res.status(400).json({ success: false, message: 'pushToken не указан' });
+    const { pool } = await import('../config/database');
+    await pool.query('UPDATE users SET push_token = $1 WHERE id = $2', [pushToken, userId]);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Ошибка' });
+  }
+});
+
 export default router;

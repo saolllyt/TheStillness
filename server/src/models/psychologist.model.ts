@@ -79,6 +79,7 @@ export class PsychologistModel {
       FROM psychologist_patients pp
       JOIN users u ON pp.patient_id = u.id
       WHERE pp.psychologist_id = $1
+        AND u.is_active = true
       ORDER BY pp.created_at DESC
     `;
     const result = await pool.query(query, [psychologist_user_id]);

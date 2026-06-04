@@ -9,7 +9,50 @@ export class MessageModel {
       RETURNING *
     `;
     const result = await pool.query(query, [sender_id, receiver_id, content, report_id || null]);
-    return result.rows[0];
+    const message = result.rows[0];
+
+    // Отправить push-уведомление получателю
+    MessageModel.sendPushNotification(sender_id, receiver_id, content).catch(() => {});
+
+    return message;
+  }
+
+  private static async sendPushNotification(sender_id: number, receiver_id: number, content: string): Promise<void> {
+    const tokenRes = await pool.query(
+      'SELECT push_token, first_name, last_name, email FROM users WHERE id = $1 AND push_token IS NOT NULL',
+      [receiver_id]
+    );
+    if (!tokenRes.rows[0]) return;
+    const { push_token } = tokenRes.rows[0];
+
+    const senderRes = await pool.query(
+      'SELECT first_name, last_name, email FROM users WHERE id = $1',
+      [sender_id]
+    );
+    const sender = senderRes.rows[0];
+    const senderName = sender?.first_name
+      ? `${sender.first_name} ${sender.last_name || ''}`.trim()
+      : sender?.email || 'Новое сообщение';
+
+    let body = content;
+    try {
+      const parsed = JSON.parse(content);
+      if (parsed.type === 'psychologist_report') body = 'Отправлен отчёт психолога';
+      else if (parsed.type) body = 'Новый отчёт';
+    } catch {}
+    if (body.length > 100) body = body.slice(0, 97) + '...';
+
+    await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({
+        to: push_token,
+        title: senderName,
+        body,
+        sound: 'default',
+        data: { senderId: sender_id },
+      }),
+    });
   }
 
   // Получить переписку между двумя пользователями
