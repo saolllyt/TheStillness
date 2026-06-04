@@ -67,27 +67,29 @@ export async function setupDailyReminder(): Promise<void> {
 }
 
 export async function registerPushToken(): Promise<void> {
+  let step = 'start';
   try {
-    // Запрашиваем разрешение если ещё нет
+    step = 'getPermissions';
     let { status } = await Notifications.getPermissionsAsync();
     if (status !== 'granted') {
+      step = 'requestPermissions';
       const res = await Notifications.requestPermissionsAsync();
       status = res.status;
     }
     if (status !== 'granted') {
-      console.log(' Push: разрешение не получено');
+      await api.post('/profile/push-debug', { step: 'permissions', error: `status=${status}` }).catch(() => {});
       return;
     }
 
+    step = 'getExpoPushToken';
     const projectId = '05b7cf0c-52bc-474e-9b13-34b614bddcb2';
-    console.log(' Push: получаем токен...');
     const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
     const pushToken = tokenData.data;
-    console.log(' Push: токен получен:', pushToken.slice(0, 40));
 
+    step = 'sendToServer';
     await api.post('/profile/push-token', { pushToken });
-    console.log(' Push-токен зарегистрирован на сервере');
-  } catch (error) {
-    console.error(' Ошибка регистрации push-токена:', error);
+  } catch (error: any) {
+    await api.post('/profile/push-debug', { step, error: error?.message || String(error) }).catch(() => {});
+    console.error(' Push ошибка на шаге', step, error);
   }
 }

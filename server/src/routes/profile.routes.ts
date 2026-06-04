@@ -215,6 +215,12 @@ router.get('/report/list', async (req, res) => {
   }
 });
 
+router.post('/push-debug', async (req, res) => {
+  const userId = (req as any).userId;
+  console.error(` Push-debug userId=${userId}: шаг="${req.body.step}" ошибка="${req.body.error}"`);
+  res.json({ success: true });
+});
+
 router.post('/push-token', async (req, res) => {
   try {
     const userId = (req as any).userId;
