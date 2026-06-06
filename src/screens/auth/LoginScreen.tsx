@@ -28,7 +28,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const validateForm = () => {
     const newErrors: typeof errors = {};
     if (!email) newErrors.email = 'Email обязателен';
-    else if (!email.includes('@')) newErrors.email = 'Введите корректный email';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) newErrors.email = 'Введите корректный email';
     if (!password) newErrors.password = 'Пароль обязателен';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;

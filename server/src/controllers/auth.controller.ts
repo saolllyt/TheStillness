@@ -24,7 +24,7 @@ export class AuthController {
         });
       }
 
-      if (!email.includes('@')) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
         return res.status(400).json({
           success: false,
           message: 'Введите корректный email'
@@ -81,7 +81,7 @@ export class AuthController {
         });
       }
 
-      if (!email.includes('@')) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
         return res.status(400).json({
           success: false,
           message: 'Введите корректный email'

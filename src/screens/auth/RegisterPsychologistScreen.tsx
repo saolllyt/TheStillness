@@ -34,7 +34,7 @@ export const RegisterPsychologistScreen: React.FC<RegisterPsychologistScreenProp
   const validateForm = () => {
     const newErrors: typeof errors = {};
     if (!email) newErrors.email = 'Email обязателен';
-    else if (!email.includes('@')) newErrors.email = 'Введите корректный email';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) newErrors.email = 'Введите корректный email';
     if (!password) newErrors.password = 'Пароль обязателен';
     else if (password.includes(' ')) newErrors.password = 'Пароль не должен содержать пробелы';
     else if (password.length < 6) newErrors.password = 'Минимум 6 символов';
