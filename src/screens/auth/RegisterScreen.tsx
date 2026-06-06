@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, KeyboardAvoidingView, Platform,
-  ScrollView, TouchableOpacity, Alert, Keyboard,
+  ScrollView, TouchableOpacity, Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Input } from '../../components/common/Input';
@@ -49,7 +49,6 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
     const result = await signUp(email, password, firstName, lastName);
     if (!result.success) {
       setErrors({ general: result.message });
-      Alert.alert('Ошибка регистрации', result.message);
     }
     setLoading(false);
   };
