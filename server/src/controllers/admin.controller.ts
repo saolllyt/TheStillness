@@ -137,7 +137,7 @@ export class AdminController {
   static async verifyPsychologist(req: Request, res: Response) {
     try {
       const { psychologistId } = req.params;
-      const { status } = req.body; // 'active' или 'rejected'
+      const { status } = req.body; 
 
       if (!['active', 'rejected'].includes(status)) {
         return res.status(400).json({ success: false, message: 'Неверный статус' });
@@ -246,6 +246,10 @@ static async createAdmin(req: Request, res: Response) {
 
     if (!email || !password) {
       return res.status(400).json({ success: false, message: 'Email и пароль обязательны' });
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+      return res.status(400).json({ success: false, message: 'Введите корректный email' });
     }
 
     const bcrypt = require('bcrypt');

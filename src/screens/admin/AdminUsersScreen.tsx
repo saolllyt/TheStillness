@@ -76,6 +76,10 @@ export const AdminUsersScreen = () => {
       Alert.alert('Ошибка', 'Email и пароль обязательны');
       return;
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(adminEmail.trim())) {
+      Alert.alert('Ошибка', 'Введите корректный email');
+      return;
+    }
     if (adminPassword.length < 6) {
       Alert.alert('Ошибка', 'Пароль минимум 6 символов');
       return;
