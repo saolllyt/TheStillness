@@ -252,6 +252,10 @@ static async createAdmin(req: Request, res: Response) {
       return res.status(400).json({ success: false, message: 'Введите корректный email' });
     }
 
+    if (/\s/.test(password)) {
+      return res.status(400).json({ success: false, message: 'Пароль не должен содержать пробелы' });
+    }
+
     const bcrypt = require('bcrypt');
     const password_hash = await bcrypt.hash(password, 10);
 

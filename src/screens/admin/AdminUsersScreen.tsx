@@ -80,6 +80,10 @@ export const AdminUsersScreen = () => {
       Alert.alert('Ошибка', 'Введите корректный email');
       return;
     }
+    if (adminPassword.includes(' ')) {
+      Alert.alert('Ошибка', 'Пароль не должен содержать пробелы');
+      return;
+    }
     if (adminPassword.length < 6) {
       Alert.alert('Ошибка', 'Пароль минимум 6 символов');
       return;
