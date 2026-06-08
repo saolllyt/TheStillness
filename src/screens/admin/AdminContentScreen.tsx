@@ -231,18 +231,16 @@ export const AdminContentScreen = () => {
           style={[styles.tab, activeTab === 'comics' && styles.tabActive]}
           onPress={() => setActiveTab('comics')}
         >
-          <Feather name="book-open" size={14} color={activeTab === 'comics' ? COLORS.primary : COLORS.textMuted} />
           <Text style={[styles.tabText, activeTab === 'comics' && styles.tabTextActive]}>
-            Книги {comics.length > 0 ? `(${comics.length})` : ''}
+            Книги
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'playlists' && styles.tabActive]}
           onPress={() => setActiveTab('playlists')}
         >
-          <Feather name="headphones" size={14} color={activeTab === 'playlists' ? COLORS.primary : COLORS.textMuted} />
           <Text style={[styles.tabText, activeTab === 'playlists' && styles.tabTextActive]}>
-            Плейлисты {playlists.length > 0 ? `(${playlists.length})` : ''}
+            Плейлисты
           </Text>
         </TouchableOpacity>
         <View style={[styles.tabIndicator, { left: activeTab === 'comics' ? 0 : '50%' }]} />

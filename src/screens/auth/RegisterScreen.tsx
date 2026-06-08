@@ -32,7 +32,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
   const validateForm = () => {
     const newErrors: typeof errors = {};
     if (!email) newErrors.email = 'Email обязателен';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) newErrors.email = 'Введите корректный email';
+    else if (!/^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(email)) newErrors.email = 'Введите корректный email';
     if (!password) newErrors.password = 'Пароль обязателен';
     else if (password.includes(' ')) newErrors.password = 'Пароль не должен содержать пробелы';
     else if (password.length < 6) newErrors.password = 'Пароль должен быть не менее 6 символов';

@@ -76,7 +76,7 @@ export const AdminUsersScreen = () => {
       Alert.alert('Ошибка', 'Email и пароль обязательны');
       return;
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(adminEmail.trim())) {
+    if (!/^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(adminEmail.trim())) {
       Alert.alert('Ошибка', 'Введите корректный email');
       return;
     }

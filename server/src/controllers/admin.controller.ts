@@ -248,7 +248,7 @@ static async createAdmin(req: Request, res: Response) {
       return res.status(400).json({ success: false, message: 'Email и пароль обязательны' });
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+    if (!/^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(email)) {
       return res.status(400).json({ success: false, message: 'Введите корректный email' });
     }
 

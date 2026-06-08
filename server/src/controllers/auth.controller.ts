@@ -24,7 +24,7 @@ export class AuthController {
         });
       }
 
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+      if (!/^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(email)) {
         return res.status(400).json({
           success: false,
           message: 'Введите корректный email'
@@ -81,7 +81,7 @@ export class AuthController {
         });
       }
 
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+      if (!/^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(email)) {
         return res.status(400).json({
           success: false,
           message: 'Введите корректный email'
