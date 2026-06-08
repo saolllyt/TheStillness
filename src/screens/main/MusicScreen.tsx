@@ -691,7 +691,7 @@ export const MusicScreen = () => {
               onPress={() => setActiveTab('favorites')}
             >
               <Text style={[styles.tabText, activeTab === 'favorites' && styles.tabTextActive]}>
-                Избранное{favorites.length > 0 ? ` (${favorites.length})` : ''}
+                Избранное
               </Text>
             </TouchableOpacity>
             <View style={[styles.tabIndicator, { left: activeTab === 'playlists' ? 0 : '50%' }]} />

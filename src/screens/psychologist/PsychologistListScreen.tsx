@@ -309,11 +309,6 @@ export const PsychologistListScreen: React.FC<PsychologistListScreenProps> = ({ 
           <Text style={[styles.tabText, activeTab === 1 && styles.tabTextActive]}>
             Мои психологи
           </Text>
-          {myPsychologists.length > 0 && (
-            <View style={styles.countBadge}>
-              <Text style={styles.countBadgeText}>{myPsychologists.length}</Text>
-            </View>
-          )}
         </TouchableOpacity>
         {/* Индикатор */}
         <View style={[styles.tabIndicator, { left: activeTab === 0 ? 0 : '50%' }]} />
@@ -465,17 +460,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderRadius: 2,
   },
-  countBadge: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 10,
-    minWidth: 18,
-    height: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-  },
-  countBadgeText: { fontSize: 11, fontWeight: '700', color: COLORS.white },
-
   searchRow: { paddingHorizontal: SPACING.xl, marginBottom: SPACING.sm },
   searchBox: {
     flexDirection: 'row',
