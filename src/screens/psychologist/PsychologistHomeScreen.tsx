@@ -122,24 +122,27 @@ setRecentReports((reportsRes.data.data || []).slice(0, 3));
 
         {/* Последние отчёты  */}
         {recentReports.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Последние отчёты</Text>
+          <View style={styles.reportsBlock}>
+            <Text style={styles.reportsBlockTitle}>Последние отчёты</Text>
             {recentReports.map((report: any) => (
               <TouchableOpacity
                 key={report.id}
-                style={styles.listCard}
-                onPress={() => navigation.navigate('ReportDetail', { reportId: report.id })}
+                style={styles.reportItem}
+                onPress={() => {
+                  const patientName = report.patient_first_name
+                    ? `${report.patient_first_name} ${report.patient_last_name || ''}`.trim()
+                    : report.patient_email;
+                  navigation.navigate('PsychReportViewer', { report, patientName });
+                }}
+                activeOpacity={0.75}
               >
-                <View style={styles.reportAvatar}>
-                  <Feather name="file-text" size={18} color={COLORS.primary} />
-                </View>
-                <View style={styles.listInfo}>
-                  <Text style={styles.listName}>
+                <View style={styles.reportItemInfo}>
+                  <Text style={styles.reportItemTitle}>
                     {report.patient_first_name
                       ? `${report.patient_first_name} ${report.patient_last_name || ''}`.trim()
                       : report.patient_email}
                   </Text>
-                  <Text style={styles.listSub}>{formatDate(report.report_date)}</Text>
+                  <Text style={styles.reportItemMeta}>Отчёт {formatDate(report.report_date)}</Text>
                 </View>
                 <Feather name="chevron-right" size={18} color={COLORS.textMuted} />
               </TouchableOpacity>
@@ -257,4 +260,35 @@ actionText: { ...TYPOGRAPHY.caption, color: COLORS.primary, fontWeight: '600' },
   listInfo: { flex: 1 },
   listName: { ...TYPOGRAPHY.body2, color: COLORS.text, fontWeight: '600' },
   listSub: { ...TYPOGRAPHY.caption, color: COLORS.textLight },
+
+  reportsBlock: {
+    marginBottom: SPACING.lg,
+  },
+  reportsBlockTitle: {
+    ...TYPOGRAPHY.h4,
+    color: COLORS.primary,
+    marginBottom: SPACING.sm,
+  },
+  reportItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.md,
+    marginBottom: SPACING.sm,
+    ...SHADOWS.small,
+  },
+  reportItemInfo: {
+    flex: 1,
+  },
+  reportItemTitle: {
+    ...TYPOGRAPHY.body2,
+    color: COLORS.text,
+    fontWeight: '500',
+  },
+  reportItemMeta: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textLight,
+    marginTop: 2,
+  },
 });

@@ -241,6 +241,40 @@ const initSchema = async () => {
   console.log(' Схема базы данных инициализирована');
 };
 
+const refreshMissingTrackImages = async () => {
+  try {
+    const rows = await pool.query(
+      `SELECT id, external_id FROM tracks WHERE image_url IS NULL AND source = 'jamendo' AND external_id IS NOT NULL`
+    );
+    if (rows.rowCount === 0) return;
+
+    const ids = rows.rows.map((r: any) => String(r.external_id).replace('jamendo_', ''));
+    const BATCH = 50;
+    const idMap: Record<string, string> = {};
+
+    for (let i = 0; i < ids.length; i += BATCH) {
+      const batch = ids.slice(i, i + BATCH);
+      const params = new URLSearchParams({ client_id: 'd6ae4611', format: 'json', imagesize: '200' });
+      batch.forEach(id => params.append('id[]', id));
+      const res = await fetch(`https://api.jamendo.com/v3.0/tracks/?${params.toString()}`);
+      if (!res.ok) continue;
+      const data = (await res.json()) as { results?: { id: string; image: string }[] };
+      (data.results || []).forEach(t => { if (t.image) idMap[t.id] = t.image; });
+    }
+
+    for (const row of rows.rows) {
+      const jamendoId = String(row.external_id).replace('jamendo_', '');
+      const imageUrl = idMap[jamendoId];
+      if (imageUrl) {
+        await pool.query('UPDATE tracks SET image_url = $1 WHERE id = $2', [imageUrl, row.id]);
+      }
+    }
+    console.log(` Обновлено обложек треков: ${Object.keys(idMap).length}`);
+  } catch (e) {
+    console.warn(' refreshMissingTrackImages пропущено:', e);
+  }
+};
+
 const startServer = async () => {
   const isConnected = await testConnection();
 
@@ -282,6 +316,8 @@ const startServer = async () => {
 
   await seedPlaylists();
   await seedComics();
+
+  refreshMissingTrackImages();
 
   app.listen(PORT, () => {
     console.log(` Server is running on port ${PORT}`);
