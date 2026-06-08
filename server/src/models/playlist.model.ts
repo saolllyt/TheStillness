@@ -117,30 +117,28 @@ export class PlaylistModel {
     artist: string | null,
     duration_seconds: number | null,
     audio_url: string,
+    image_url?: string | null,
   ): Promise<number> {
     const external_id = `jamendo_${jamendo_id}`;
 
-    // Ищем существующий трек
     const existing = await pool.query(
       'SELECT id FROM tracks WHERE external_id = $1',
       [external_id],
     );
 
     if (existing.rows.length > 0) {
-      // Обновляем ссылку аудио
       await pool.query(
-        'UPDATE tracks SET audio_url = $1 WHERE id = $2',
-        [audio_url, existing.rows[0].id],
+        'UPDATE tracks SET audio_url = $1, image_url = COALESCE($2, image_url) WHERE id = $3',
+        [audio_url, image_url || null, existing.rows[0].id],
       );
       return existing.rows[0].id;
     }
 
-    // Создаём новый трек
     const result = await pool.query(
-      `INSERT INTO tracks (playlist_id, title, artist, duration_seconds, audio_url, download_url, source, external_id)
-       VALUES ($1, $2, $3, $4, $5, $5, 'jamendo', $6)
+      `INSERT INTO tracks (playlist_id, title, artist, duration_seconds, audio_url, download_url, source, external_id, image_url)
+       VALUES ($1, $2, $3, $4, $5, $5, 'jamendo', $6, $7)
        RETURNING id`,
-      [playlist_id, title, artist, duration_seconds, audio_url, external_id],
+      [playlist_id, title, artist, duration_seconds, audio_url, external_id, image_url || null],
     );
     return result.rows[0].id;
   }

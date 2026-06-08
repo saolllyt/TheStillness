@@ -207,7 +207,6 @@ export const seedComics = async (): Promise<void> => {
   }
 };
 
-// 10 плейлистов с обложками от Unsplash (бесплатно, стабильные CDN-ссылки)
 const PLAYLISTS_SEED = [
   {
     title: 'Утренняя медитация',
@@ -258,6 +257,31 @@ const PLAYLISTS_SEED = [
     title: 'Бинауральные ритмы',
     description: 'Специальные частоты для медитации и расслабления',
     cover_image_url: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=400&q=80',
+  },
+  {
+    title: 'Джаз и блюз',
+    description: 'Мягкий джаз и блюз для вечернего расслабления',
+    cover_image_url: 'https://images.unsplash.com/photo-1415201364774-f6f0bb35f28f?w=400&q=80',
+  },
+  {
+    title: 'Гитара у костра',
+    description: 'Акустическая гитара и атмосфера уюта',
+    cover_image_url: 'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=400&q=80',
+  },
+  {
+    title: 'Осень и ностальгия',
+    description: 'Меланхоличные мелодии для задумчивых вечеров',
+    cover_image_url: 'https://images.unsplash.com/photo-1476820865390-c52aeebb9891?w=400&q=80',
+  },
+  {
+    title: 'Звуки океана',
+    description: 'Шум волн и морская атмосфера для глубокого покоя',
+    cover_image_url: 'https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=400&q=80',
+  },
+  {
+    title: 'Энергия и подъём',
+    description: 'Позитивная музыка для хорошего настроения',
+    cover_image_url: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&q=80',
   },
 ];
 

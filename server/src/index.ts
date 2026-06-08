@@ -227,6 +227,7 @@ const initSchema = async () => {
        AND id NOT IN (SELECT user_id FROM psychologists WHERE user_id IS NOT NULL)
     ON CONFLICT DO NOTHING`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS push_token VARCHAR(500)`,
+    `ALTER TABLE tracks ADD COLUMN IF NOT EXISTS image_url VARCHAR(500)`,
   ];
 
   for (const query of queries) {

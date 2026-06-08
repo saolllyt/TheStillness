@@ -176,7 +176,7 @@ export class PlaylistController {
   static async addJamendoFavorite(req: Request, res: Response) {
     try {
       const userId = (req as any).userId;
-      const { jamendoId, title, artist, durationSeconds, audioUrl, playlistId } = req.body;
+      const { jamendoId, title, artist, durationSeconds, audioUrl, playlistId, imageUrl } = req.body;
 
       if (!jamendoId || !audioUrl || !playlistId) {
         return res.status(400).json({ success: false, message: 'Не хватает данных трека' });
@@ -189,6 +189,7 @@ export class PlaylistController {
         artist || null,
         durationSeconds ? Number(durationSeconds) : null,
         audioUrl,
+        imageUrl || null,
       );
 
       await PlaylistModel.addToFavoriteTracks(userId, trackId);

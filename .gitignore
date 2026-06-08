@@ -60,3 +60,12 @@ debug.keystore
 # Логи сервера
 server/logs/
 server/*.log
+
+# Логи Expo / Metro
+*.log
+expo-log.txt
+metro-live.log
+
+# Firebase сервисный аккаунт (секретный ключ — никогда не коммитить!)
+*-firebase-adminsdk-*.json
+thestillness-*.json

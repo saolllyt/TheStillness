@@ -54,10 +54,10 @@ export async function setupDailyReminder(): Promise<void> {
         ...(Platform.OS === 'android' && { channelId: CHANNEL_ID }),
       },
       trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
         hour: 17,
         minute: 0,
-        repeats: true,
-      } as any,
+      },
     });
 
     console.log(' Ежедневное напоминание запланировано на 17:00');

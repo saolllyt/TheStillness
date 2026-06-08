@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
+import { COLORS, TYPOGRAPHY, SPACING } from '../../constants/theme';
 import { EmotionCard } from '../../components/emotion/EmotionCard';
 import { EmotionJar } from '../../components/emotion/EmotionJar';
 import { Button } from '../../components/common/Button';
@@ -151,13 +151,8 @@ export const TrackerScreen = () => {
 
         {/* Шапка */}
         <View style={styles.header}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.greeting}>{getGreeting()}, {getUserName()}</Text>
-            <Text style={styles.date}>{today}</Text>
-          </View>
-          <TouchableOpacity style={styles.refreshBtn} onPress={loadData}>
-            <Feather name="refresh-cw" size={20} color={COLORS.primary} />
-          </TouchableOpacity>
+          <Text style={styles.greeting}>{getGreeting()}, {getUserName()}</Text>
+          <Text style={styles.date}>{today}</Text>
         </View>
 
         {/* Банка эмоций */}
@@ -228,21 +223,10 @@ const styles = StyleSheet.create({
     paddingBottom: 140,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: SPACING.md,
   },
   greeting: { ...TYPOGRAPHY.h4, color: COLORS.primary, marginBottom: 2 },
   date: { ...TYPOGRAPHY.caption, color: COLORS.textLight },
-  refreshBtn: {
-    width: 40, height: 40,
-    borderRadius: BORDER_RADIUS.round,
-    backgroundColor: COLORS.white,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...SHADOWS.small,
-  },
   section: { marginTop: SPACING.md },
   sectionRow: {
     flexDirection: 'row',

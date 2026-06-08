@@ -67,6 +67,29 @@ const PLAYLIST_CONFIG: { [key: string]: PlaylistConfig } = {
     fuzzytags: 'binaural theta alpha brainwave frequency',
     vocalinstrumental: 'instrumental',
   },
+  'Джаз и блюз': {
+    fuzzytags: 'jazz blues soul smooth lounge',
+    speed: 'low',
+  },
+  'Гитара у костра': {
+    fuzzytags: 'acoustic guitar folk campfire fingerpicking',
+    acousticelectric: 'acoustic',
+    vocalinstrumental: 'instrumental',
+  },
+  'Осень и ностальгия': {
+    fuzzytags: 'melancholy nostalgic sad introspective autumn',
+    vocalinstrumental: 'instrumental',
+    speed: 'low',
+  },
+  'Звуки океана': {
+    fuzzytags: 'ocean sea waves beach coastal ambient',
+    vocalinstrumental: 'instrumental',
+    speed: 'verylow',
+  },
+  'Энергия и подъём': {
+    fuzzytags: 'uplifting positive happy energetic joyful',
+    speed: 'medium',
+  },
 };
 
 const apiCache: { [playlistName: string]: JamendoTrack[] } = {};

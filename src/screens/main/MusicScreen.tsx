@@ -47,6 +47,11 @@ const PLAYLIST_COLORS: { [key: string]: string } = {
   'Дождь и гроза':      '#697C8F',
   'Классика для отдыха': '#D4A5A5',
   'Бинауральные ритмы': '#8E9FC5',
+  'Джаз и блюз':        '#B8860B',
+  'Гитара у костра':    '#A0522D',
+  'Осень и ностальгия': '#CD853F',
+  'Звуки океана':       '#4682B4',
+  'Энергия и подъём':   '#E8876A',
   'Избранное':          '#E8A87C',
 };
 
@@ -61,6 +66,11 @@ const PLAYLIST_ICONS: { [key: string]: string } = {
   'Дождь и гроза':      '🌧️',
   'Классика для отдыха': '🎻',
   'Бинауральные ритмы': '🧠',
+  'Джаз и блюз':        '🎷',
+  'Гитара у костра':    '🎸',
+  'Осень и ностальгия': '🍂',
+  'Звуки океана':       '🌊',
+  'Энергия и подъём':   '✨',
   'Избранное':          '❤️',
 };
 
@@ -399,6 +409,7 @@ export const MusicScreen = () => {
           durationSeconds: track.duration_seconds,
           audioUrl: track.audio_url,
           playlistId: track.playlist_id,
+          imageUrl: track.image_url || null,
         });
         setFavoriteJamendoIds(prev => new Set([...prev, jid]));
         await loadFavorites();
@@ -418,7 +429,7 @@ export const MusicScreen = () => {
       artist: t.artist,
       audio_url: t.audio_url,
       duration_seconds: t.duration_seconds,
-      image_url: playlists.find(p => p.id === t.playlist_id)?.cover_image_url || undefined,
+      image_url: t.image_url || undefined,
       jamendo_id: t.external_id ? String(t.external_id).replace('jamendo_', '') : undefined,
       playlist_name: 'Избранное',
     }));
@@ -726,8 +737,6 @@ export const MusicScreen = () => {
           keyExtractor={(item) => `fav-${item.id}`}
           renderItem={({ item }) => {
             const isActive = playingFromFavorites && favTracks[favCurrentIndex]?.id === item.id;
-            const favPlaylist = playlists.find(p => p.id === item.playlist_id);
-            const favCoverUrl = favPlaylist?.cover_image_url;
             return (
               <TouchableOpacity
                 style={[styles.trackItem, isActive && styles.trackItemActive]}
@@ -735,8 +744,8 @@ export const MusicScreen = () => {
                 activeOpacity={0.7}
               >
                 <View style={[styles.trackCoverWrap, { marginRight: SPACING.md }]}>
-                  {favCoverUrl ? (
-                    <Image source={{ uri: favCoverUrl }} style={{ width: 52, height: 52, borderRadius: 52 * 0.2 }} />
+                  {item.image_url ? (
+                    <Image source={{ uri: item.image_url }} style={{ width: 52, height: 52, borderRadius: 52 * 0.2 }} />
                   ) : (
                     <CoverPlaceholder name="Избранное" size={52} />
                   )}
