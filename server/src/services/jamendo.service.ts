@@ -20,74 +20,78 @@ interface PlaylistConfig {
   speed?: 'verylow' | 'low' | 'medium' | 'high' | 'veryhigh';
 }
 
-// Уникальные конфиги для каждого плейлиста — разные первичные теги
+// Уникальные конфиги для каждого плейлиста — теги подобраны под реальный каталог Jamendo
 const PLAYLIST_CONFIG: { [key: string]: PlaylistConfig } = {
   'Утренняя медитация': {
-    fuzzytags: 'meditation zen mindfulness morning tranquil',
+    fuzzytags: 'meditation ambient peaceful morning relaxation',
     vocalinstrumental: 'instrumental',
     speed: 'low',
   },
   'Звуки природы': {
-    fuzzytags: 'nature forest birds organic soundscape',
-    acousticelectric: 'acoustic',
+    fuzzytags: 'nature ambient birds forest rain',
     vocalinstrumental: 'instrumental',
+    speed: 'verylow',
   },
   'Для глубокого сна': {
-    fuzzytags: 'sleep dream lullaby night hypnotic',
+    fuzzytags: 'ambient sleep relaxation dreamy soft',
     vocalinstrumental: 'instrumental',
     speed: 'verylow',
   },
   'Снятие тревоги': {
-    fuzzytags: 'calm soothing anxiety healing therapeutic',
+    fuzzytags: 'ambient calm relaxation peaceful healing',
     vocalinstrumental: 'instrumental',
+    speed: 'low',
   },
   'Фортепиано и душа': {
-    fuzzytags: 'piano neoclassical solo melancholy emotional',
+    fuzzytags: 'piano solo neoclassical ambient emotional',
     acousticelectric: 'acoustic',
     vocalinstrumental: 'instrumental',
   },
   'Йога и растяжка': {
-    fuzzytags: 'yoga flow breathing stretch body',
+    fuzzytags: 'yoga meditation ambient relaxation breathing',
     vocalinstrumental: 'instrumental',
     speed: 'low',
   },
   'Концентрация и фокус': {
-    fuzzytags: 'focus study concentration work productivity',
+    fuzzytags: 'ambient electronic focus study minimal',
     vocalinstrumental: 'instrumental',
   },
   'Дождь и гроза': {
-    fuzzytags: 'rain thunder storm atmospheric dark',
+    fuzzytags: 'ambient dark atmospheric drone minimal',
     vocalinstrumental: 'instrumental',
+    speed: 'verylow',
   },
   'Классика для отдыха': {
-    fuzzytags: 'classical orchestra symphony romantic chamber',
+    fuzzytags: 'classical ambient orchestral relaxation chamber',
     vocalinstrumental: 'instrumental',
+    speed: 'low',
   },
   'Бинауральные ритмы': {
-    fuzzytags: 'binaural theta alpha brainwave frequency',
+    fuzzytags: 'ambient electronic meditation drone relaxation',
     vocalinstrumental: 'instrumental',
+    speed: 'verylow',
   },
   'Джаз и блюз': {
-    fuzzytags: 'jazz blues soul smooth lounge',
+    fuzzytags: 'jazz blues lounge swing bossa',
     speed: 'low',
   },
   'Гитара у костра': {
-    fuzzytags: 'acoustic guitar folk campfire fingerpicking',
+    fuzzytags: 'acoustic guitar folk fingerpicking ambient',
     acousticelectric: 'acoustic',
     vocalinstrumental: 'instrumental',
   },
   'Осень и ностальгия': {
-    fuzzytags: 'melancholy nostalgic sad introspective autumn',
+    fuzzytags: 'ambient melancholic sad nostalgic piano',
     vocalinstrumental: 'instrumental',
     speed: 'low',
   },
   'Звуки океана': {
-    fuzzytags: 'ocean sea waves beach coastal ambient',
+    fuzzytags: 'ambient nature ocean waves relaxation',
     vocalinstrumental: 'instrumental',
     speed: 'verylow',
   },
   'Энергия и подъём': {
-    fuzzytags: 'uplifting positive happy energetic joyful',
+    fuzzytags: 'uplifting positive energetic happy electronic',
     speed: 'medium',
   },
 };

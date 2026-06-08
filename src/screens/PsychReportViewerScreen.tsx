@@ -89,7 +89,11 @@ const buildHtml = (report: any, patientName: string): string => {
     <div class="hero-title">${patientName}</div>
     <div class="hero-meta">
       <div class="hero-pill"><span>Дата консультации</span>${fmt(report.report_date)}</div>
-      <div class="hero-pill"><span>Специалист</span>${report.psych_name || '—'}</div>
+      <div class="hero-pill"><span>Специалист</span>${
+        report.psych_first_name
+          ? (report.psych_first_name + ' ' + (report.psych_last_name || '')).trim()
+          : (report.psych_name || '—')
+      }</div>
     </div>
   </div>
 
