@@ -18,7 +18,6 @@ export const PsychologistHomeScreen = ({ navigation }: any) => {
     pendingRequests: 0,
     unreadMessages: 0,
   });
-  const [recentPatients, setRecentPatients] = useState<any[]>([]);
   const [recentReports, setRecentReports] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -38,8 +37,7 @@ export const PsychologistHomeScreen = ({ navigation }: any) => {
         pendingRequests: pendingPatients.length,
         unreadMessages: unreadRes.data.data?.count || 0,
       });
-      setRecentPatients(activePatients.slice(0, 3));
-      setRecentReports((reportsRes.data.data || []).slice(0, 3));
+setRecentReports((reportsRes.data.data || []).slice(0, 3));
     } catch (error) {
       console.error('Load psychologist home error:', error);
     } finally {
@@ -48,11 +46,6 @@ export const PsychologistHomeScreen = ({ navigation }: any) => {
   };
 
   useFocusEffect(useCallback(() => { loadData(); }, []));
-
-  const getFullName = (p: any) => {
-    if (p.first_name || p.last_name) return `${p.first_name || ''} ${p.last_name || ''}`.trim();
-    return p.email || p.patient_email || '';
-  };
 
   const formatDate = (d: string) => {
     if (!d) return '';
@@ -126,40 +119,6 @@ export const PsychologistHomeScreen = ({ navigation }: any) => {
             </TouchableOpacity>
           </View>
         </View>
-
-        {/* Активные пациенты */}
-        {recentPatients.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Активные пациенты</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Patients')}>
-                <Text style={styles.seeAll}>Все</Text>
-              </TouchableOpacity>
-            </View>
-            {recentPatients.map((patient) => (
-              <TouchableOpacity
-                key={patient.id}
-                style={styles.listCard}
-                onPress={() => navigation.navigate('Chat', {
-                  otherUserId: patient.id,
-                  otherUserName: getFullName(patient),
-                })}
-              >
-                <View style={styles.listAvatar}>
-                  <Text style={styles.listAvatarText}>
-                    {patient.first_name?.charAt(0)?.toUpperCase() ||
-                      patient.email.charAt(0).toUpperCase()}
-                  </Text>
-                </View>
-                <View style={styles.listInfo}>
-                  <Text style={styles.listName}>{getFullName(patient)}</Text>
-                  <Text style={styles.listSub}>{patient.email}</Text>
-                </View>
-                <Feather name="message-circle" size={20} color={COLORS.primary} />
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
 
         {/* Последние отчёты  */}
         {recentReports.length > 0 && (

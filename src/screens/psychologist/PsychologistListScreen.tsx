@@ -176,11 +176,8 @@ export const PsychologistListScreen: React.FC<PsychologistListScreenProps> = ({ 
           <View style={styles.cardInfo}>
             <Text style={styles.cardName}>{getName(item)}</Text>
             {item.specialization && (
-              <View style={styles.specTag}>
-                <Text style={styles.specTagText} numberOfLines={1}>{item.specialization}</Text>
-              </View>
+              <Text style={styles.specText} numberOfLines={1}>{item.specialization}</Text>
             )}
-            <Text style={styles.cardLicense}>Лицензия: {item.license_number}</Text>
           </View>
           {connection && <StatusBadge status={connection.status} />}
         </View>
@@ -249,9 +246,7 @@ export const PsychologistListScreen: React.FC<PsychologistListScreenProps> = ({ 
               )}
             </View>
             {item.specialization && (
-              <View style={styles.specTag}>
-                <Text style={styles.specTagText} numberOfLines={1}>{item.specialization}</Text>
-              </View>
+              <Text style={styles.specText} numberOfLines={1}>{item.specialization}</Text>
             )}
           </View>
           <StatusBadge status={item.status} />
@@ -500,6 +495,7 @@ const styles = StyleSheet.create({
   avatarText: { fontSize: 20, fontWeight: '600', color: COLORS.white },
   cardInfo: { flex: 1 },
   cardName: { ...TYPOGRAPHY.body1, color: COLORS.primary, fontWeight: '600', marginBottom: 4 },
+  specText: { ...TYPOGRAPHY.caption, color: COLORS.textLight, marginBottom: 2 },
   specTag: {
     alignSelf: 'flex-start',
     backgroundColor: COLORS.secondary,
