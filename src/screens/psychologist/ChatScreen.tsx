@@ -153,6 +153,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
   const isMyMessage = (msg: Message) => msg.sender_id === user?.id;
   const formatTime = (dateStr: string) => format(new Date(dateStr), 'HH:mm', { locale: ru });
   const formatDate = (dateStr: string) => format(new Date(dateStr), 'd MMMM', { locale: ru });
+  const fmtReportDate = (d: string) => d ? new Date(d).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
 
   const renderMessage = ({ item, index }: { item: Message; index: number }) => {
     const isMine = isMyMessage(item);
@@ -241,7 +242,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
                   color: isMine ? 'rgba(255,255,255,0.7)' : COLORS.primaryLight,
                   marginBottom: 4,
                 }}>
-                  {reportData.startDate} — {reportData.endDate}
+                  Отчёт {fmtReportDate(reportData.startDate)} — {fmtReportDate(reportData.endDate)}
                 </Text>
                 {reportData.summary && (
                   <Text style={{
@@ -507,7 +508,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => 
                     <Text style={{ ...TYPOGRAPHY.body2, color: COLORS.text }}>
                       {(user as any)?.role === 'psychologist'
                         ? `Отчёт от ${new Date(report.report_date).toLocaleDateString('ru-RU')}`
-                        : `${report.start_date} — ${report.end_date}`}
+                        : `Отчёт ${fmtReportDate(report.start_date)} — ${fmtReportDate(report.end_date)}`}
                     </Text>
                     <Text style={{ ...TYPOGRAPHY.caption, color: COLORS.textLight }}>
                       Нажмите чтобы отправить

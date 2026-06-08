@@ -303,7 +303,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
               >
                 <View style={styles.savedReportInfo}>
                   <Text style={styles.savedReportDates}>
-                    {formatReportDate(report.start_date)} — {formatReportDate(report.end_date)}
+                    Отчёт {formatReportDate(report.start_date)} — {formatReportDate(report.end_date)}
                   </Text>
                   <Text style={styles.savedReportMeta}>
                     {report.sent_at ? 'Отправлен психологу' : 'Не отправлен'}
