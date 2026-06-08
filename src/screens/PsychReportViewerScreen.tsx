@@ -33,16 +33,18 @@ interface PsychReportViewerScreenProps {
 
 const buildHtml = (report: any, patientName: string): string => {
   const fmt = (d: string) => d
-    ? new Date(d).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    ? new Date(d).toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' })
     : '—';
 
-  const today   = new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  const docNum  = `ПЗ-${new Date().getFullYear()}-${String(Date.now()).slice(-5)}`;
+  const today = new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' });
 
-  const section = (num: string, title: string, content: string) => `
-    <div class="section">
-      <div class="section-head">${num}. ${title.toUpperCase()}</div>
-      <div class="section-body">${content || '<span class="empty">Сведения не предоставлены</span>'}</div>
+  const section = (title: string, content: string) => `
+    <div class="card">
+      <div class="card-title">${title}</div>
+      <div class="card-body">${content
+        ? content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        : '<span class="empty">Не заполнено</span>'
+      }</div>
     </div>`;
 
   return `<!DOCTYPE html>
@@ -52,91 +54,53 @@ const buildHtml = (report: any, patientName: string): string => {
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family: Georgia, 'Times New Roman', serif; font-size:13px; color:#111; background:#fff; padding:24px 28px; }
+  body { font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; font-size:14px; color:#1c1c1e; background:#f2f4f8; }
+  .wrap { max-width:680px; margin:0 auto; padding:20px 16px 40px; }
 
-  /* Шапка */
-  .letterhead { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #2C3F70; padding-bottom:14px; margin-bottom:18px; }
-  .org-name { font-size:11px; font-weight:bold; color:#2C3F70; text-transform:uppercase; letter-spacing:1.2px; }
-  .org-sub  { font-size:10px; color:#666; margin-top:3px; }
-  .doc-num  { font-size:10px; color:#888; text-align:right; line-height:1.6; }
-  .doc-num b { color:#2C3F70; }
+  .app-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+  .app-name { font-size:18px; font-weight:700; color:#1b4f8a; }
+  .report-date { font-size:12px; color:#888; }
 
-  /* Заголовок */
-  .title-block { text-align:center; margin-bottom:20px; padding:14px; border:1px solid #d0d8ec; background:#f9fafc; }
-  .doc-title { font-size:15px; font-weight:bold; color:#1a1a2e; text-transform:uppercase; letter-spacing:0.6px; }
-  .doc-sub   { font-size:11px; color:#666; margin-top:4px; font-style:italic; }
+  .hero { background:#1b4f8a; border-radius:16px; padding:20px; margin-bottom:16px; color:#fff; }
+  .hero-label { font-size:12px; opacity:0.8; margin-bottom:6px; }
+  .hero-title { font-size:20px; font-weight:700; margin-bottom:14px; }
+  .hero-meta { display:flex; flex-wrap:wrap; gap:10px; }
+  .hero-pill { background:rgba(255,255,255,0.15); border-radius:8px; padding:6px 12px; font-size:12px; }
+  .hero-pill span { display:block; font-size:10px; opacity:0.7; margin-bottom:2px; }
 
-  /* Реквизиты */
-  .requisites { width:100%; border-collapse:collapse; margin-bottom:20px; }
-  .requisites tr:first-child td { border-top:1px solid #c8d1e8; }
-  .requisites td { padding:6px 12px; border-bottom:1px solid #e0e6f0; font-size:12px; }
-  .requisites td.label { background:#eef1f8; color:#444; font-weight:bold; font-size:11px; text-transform:uppercase; letter-spacing:0.3px; width:40%; }
+  .card { background:#fff; border-radius:12px; padding:16px; margin-bottom:10px; }
+  .card-title { font-size:12px; font-weight:600; color:#888; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; }
+  .card-body { font-size:14px; line-height:1.7; color:#1c1c1e; white-space:pre-wrap; }
+  .empty { color:#bbb; font-style:italic; font-size:13px; }
 
-  /* Секции */
-  .section { margin-bottom:18px; }
-  .section-head { font-size:11px; font-weight:bold; color:#fff; background:#2C3F70; padding:5px 10px; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0; }
-  .section-body { border:1px solid #d0d8ec; border-top:none; padding:12px 14px; font-size:13px; line-height:1.7; color:#1a1a2e; white-space:pre-wrap; min-height:48px; }
-  .empty { color:#bbb; font-style:italic; font-size:12px; }
-
-  /* Подпись */
-  .signatures { display:flex; justify-content:space-between; margin-top:32px; padding-top:16px; border-top:1px solid #d0d8ec; }
-  .sig { flex:1; }
-  .sig.right { text-align:right; }
-  .sig-label { font-size:10px; color:#888; margin-bottom:20px; }
-  .sig-line  { border-bottom:1px solid #333; display:block; width:180px; margin-bottom:4px; }
-  .sig-line.right-line { margin-left:auto; }
-  .sig-name  { font-size:11px; color:#444; }
-
-  .footer { margin-top:14px; font-size:9px; color:#ccc; text-align:center; border-top:1px solid #eee; padding-top:8px; }
+  .footer-line { text-align:center; font-size:11px; color:#c0c0c5; margin-top:24px; }
 </style>
 </head>
 <body>
+<div class="wrap">
 
-<div class="letterhead">
-  <div>
-    <div class="org-name">TheStillness</div>
-    <div class="org-sub">Сервис психологической поддержки и мониторинга</div>
+  <div class="app-header">
+    <div class="app-name">TheStillness</div>
+    <div class="report-date">${today}</div>
   </div>
-  <div class="doc-num">
-    № <b>${docNum}</b><br>
-    Дата: <b>${today}</b>
+
+  <div class="hero">
+    <div class="hero-label">Психологическое заключение</div>
+    <div class="hero-title">${patientName}</div>
+    <div class="hero-meta">
+      <div class="hero-pill"><span>Дата консультации</span>${fmt(report.report_date)}</div>
+      <div class="hero-pill"><span>Специалист</span>${report.psych_name || '—'}</div>
+    </div>
   </div>
+
+  ${section('Жалобы и запрос', report.complaints || '')}
+  ${section('Анамнез', report.anamnesis || '')}
+  ${section('Результаты обследования', report.examinations || '')}
+  ${section('Рекомендации', report.recommendations || '')}
+
+  <div class="footer-line">Сформировано в приложении TheStillness</div>
+
 </div>
-
-<div class="title-block">
-  <div class="doc-title">Психологическое заключение</div>
-  <div class="doc-sub">по результатам наблюдения и консультации</div>
-</div>
-
-<table class="requisites">
-  <tr><td class="label">Дата консультации</td><td>${fmt(report.report_date)}</td></tr>
-  <tr><td class="label">Ф.И.О. клиента</td><td>${patientName}</td></tr>
-  <tr><td class="label">Специалист</td><td>${report.psych_name || '—'}</td></tr>
-  <tr><td class="label">Дата составления</td><td>${today}</td></tr>
-</table>
-
-${section('1', 'Жалобы и запрос клиента', report.complaints || '')}
-${section('2', 'Анамнез', report.anamnesis || '')}
-${section('3', 'Результаты обследования', report.examinations || '')}
-${section('4', 'Рекомендации специалиста', report.recommendations || '')}
-
-<div class="signatures">
-  <div class="sig">
-    <div class="sig-label">Специалист-психолог</div>
-    <div class="sig-line"></div>
-    <div class="sig-name">${report.psych_name || '________________'}</div>
-  </div>
-  <div class="sig right">
-    <div class="sig-label">Дата выдачи</div>
-    <div class="sig-line right-line"></div>
-    <div class="sig-name">${today}</div>
-  </div>
-</div>
-
-<div class="footer">
-  Заключение сформировано в системе TheStillness · Носит рекомендательный характер · Конфиденциально
-</div>
-
 </body>
 </html>`;
 };

@@ -45,26 +45,24 @@ const EMOTION_NAMES: { [key: number]: string } = {
 const buildHtml = (reportData: any, userName: string): string => {
   const { startDate, endDate, summary, emotions = [], diary = [] } = reportData;
 
-  const docNum = `ТС-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
-  const today  = new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const today = new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' });
 
-  const totalPositiveRatio = summary?.totalEmotions > 0
+  const positiveRatio = summary?.totalEmotions > 0
     ? Math.round((summary.goodEmotions / summary.totalEmotions) * 100)
     : 0;
+  const barColor = positiveRatio >= 60 ? '#4A7A6C' : positiveRatio >= 40 ? '#c8952a' : '#b05e5e';
 
-  const emotionRows = emotions.slice(0, 50).map((e: any, idx: number) => `
+  const emotionRows = emotions.slice(0, 50).map((e: any) => `
     <tr>
-      <td style="color:#888;font-size:11px;">${idx + 1}</td>
       <td>${formatDateTime(e.created_at || e.created_date)}</td>
-      <td><b>${EMOTION_NAMES[e.emotion_type_id] || '—'}</b></td>
+      <td>${EMOTION_NAMES[e.emotion_type_id] || '—'}</td>
       <td style="text-align:center;">${e.intensity ?? '—'} / 10</td>
     </tr>
   `).join('');
 
-  const diaryRows = diary.slice(0, 30).map((d: any, idx: number) => `
+  const diaryRows = diary.slice(0, 30).map((d: any) => `
     <tr>
-      <td style="color:#888;font-size:11px;">${idx + 1}</td>
-      <td>${formatDateTime(d.created_at)}</td>
+      <td style="white-space:nowrap;">${formatDateTime(d.created_at)}</td>
       <td>${d.situation || '—'}</td>
       <td>${d.emotion_name || '—'}</td>
       <td>${d.behavior || '—'}</td>
@@ -78,179 +76,118 @@ const buildHtml = (reportData: any, userName: string): string => {
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family: Georgia, 'Times New Roman', serif; font-size:13px; color:#111; background:#fff; padding:24px 28px; }
+  body { font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; font-size:14px; color:#1c1c1e; background:#f2f4f8; }
+  .wrap { max-width:680px; margin:0 auto; padding:20px 16px 40px; }
 
-  /* Шапка бланка */
-  .letterhead { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px; padding-bottom:14px; border-bottom:2px solid #2C3F70; }
-  .org-block { flex:1; }
-  .org-name   { font-size:11px; color:#2C3F70; text-transform:uppercase; letter-spacing:1.2px; font-weight:bold; margin-bottom:3px; }
-  .org-sub    { font-size:10px; color:#666; }
-  .doc-num    { font-size:10px; color:#888; text-align:right; }
-  .doc-num b  { color:#2C3F70; }
+  .app-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+  .app-name { font-size:18px; font-weight:700; color:#1b4f8a; letter-spacing:-0.3px; }
+  .report-date { font-size:12px; color:#8a8a8e; }
 
-  /* Заголовок документа */
-  .doc-title-block { text-align:center; margin-bottom:20px; }
-  .doc-title  { font-size:16px; font-weight:bold; color:#1a1a2e; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; }
-  .doc-conf   { font-size:10px; color:#888; font-style:italic; }
+  .hero { background:#1b4f8a; border-radius:16px; padding:20px; margin-bottom:16px; color:#fff; }
+  .hero-title { font-size:15px; font-weight:600; margin-bottom:4px; opacity:0.85; }
+  .hero-name { font-size:22px; font-weight:700; margin-bottom:12px; }
+  .hero-period { display:flex; gap:16px; }
+  .hero-pill { background:rgba(255,255,255,0.15); border-radius:8px; padding:6px 12px; font-size:12px; }
+  .hero-pill span { display:block; font-size:10px; opacity:0.75; margin-bottom:2px; }
 
-  /* Реквизиты */
-  .requisites { width:100%; border-collapse:collapse; margin-bottom:20px; font-size:12px; }
-  .requisites td { padding:5px 10px; border:1px solid #d0d8ec; }
-  .requisites td:first-child { background:#f2f5fb; color:#555; width:38%; font-weight:bold; font-size:11px; text-transform:uppercase; letter-spacing:0.3px; }
-  .requisites td:last-child  { color:#1a1a2e; }
+  .stats-row { display:flex; gap:10px; margin-bottom:16px; }
+  .stat-box { flex:1; background:#fff; border-radius:12px; padding:14px 10px; text-align:center; }
+  .stat-num { font-size:28px; font-weight:700; color:#1b4f8a; line-height:1; }
+  .stat-lbl { font-size:11px; color:#8a8a8e; margin-top:4px; line-height:1.3; }
 
-  /* Секция */
-  .section { margin-bottom:22px; }
-  .section-title {
-    font-size:12px; font-weight:bold; color:#fff;
-    background:#2C3F70; padding:5px 10px;
-    text-transform:uppercase; letter-spacing:0.5px;
-    margin-bottom:10px;
-  }
+  .card { background:#fff; border-radius:12px; padding:16px; margin-bottom:12px; }
+  .card-title { font-size:13px; font-weight:600; color:#8a8a8e; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:12px; }
 
-  /* Карточки статистики */
-  .stat-cards { display:flex; gap:10px; margin-bottom:14px; }
-  .stat-card  { flex:1; border:1px solid #d0d8ec; border-radius:4px; padding:10px; text-align:center; }
-  .stat-card .num { font-size:26px; font-weight:bold; color:#2C3F70; font-family:Arial,sans-serif; }
-  .stat-card .lbl { font-size:10px; color:#777; margin-top:2px; }
+  .bar-wrap { margin-bottom:6px; }
+  .bar-labels { display:flex; justify-content:space-between; font-size:12px; color:#555; margin-bottom:5px; }
+  .bar-track { height:8px; background:#eceef2; border-radius:4px; overflow:hidden; }
+  .bar-fill { height:100%; border-radius:4px; }
+  .bar-sublabels { display:flex; justify-content:space-between; font-size:11px; color:#aaa; margin-top:4px; }
 
-  /* Прогресс-бар */
-  .progress-wrap { margin-bottom:14px; }
-  .progress-label { display:flex; justify-content:space-between; font-size:11px; color:#555; margin-bottom:4px; }
-  .progress-track { height:10px; background:#eee; border-radius:5px; overflow:hidden; }
-  .progress-fill  { height:100%; border-radius:5px; background: #4A7A6C; }
+  .kv-list { display:flex; flex-direction:column; gap:8px; }
+  .kv-row { display:flex; justify-content:space-between; align-items:center; }
+  .kv-key { font-size:13px; color:#555; }
+  .kv-val { font-size:13px; font-weight:600; color:#1c1c1e; }
 
-  /* Таблица показателей */
-  .kpi-table { width:100%; border-collapse:collapse; font-size:12px; margin-bottom:12px; }
-  .kpi-table td { padding:6px 10px; border-bottom:1px solid #eaedf5; }
-  .kpi-table td:first-child { color:#555; }
-  .kpi-table td:last-child  { font-weight:bold; color:#2C3F70; text-align:right; }
+  table.dt { width:100%; border-collapse:collapse; font-size:12px; }
+  table.dt thead th { font-size:11px; font-weight:600; color:#8a8a8e; text-transform:uppercase; letter-spacing:0.4px; padding:0 8px 8px; text-align:left; border-bottom:1px solid #eceef2; }
+  table.dt tbody td { padding:8px 8px; border-bottom:1px solid #f4f4f6; vertical-align:top; color:#333; line-height:1.4; }
+  table.dt tbody tr:last-child td { border-bottom:none; }
+  .no-data { text-align:center; color:#aaa; padding:16px; font-size:12px; }
 
-  /* Данные таблицы */
-  table.data { width:100%; border-collapse:collapse; font-size:11px; }
-  table.data th { background:#2C3F70; color:#fff; padding:6px 8px; font-weight:normal; font-size:10px; text-transform:uppercase; letter-spacing:0.3px; text-align:left; }
-  table.data td { padding:5px 8px; border-bottom:1px solid #eaedf5; vertical-align:top; }
-  table.data tr:nth-child(even) td { background:#f8f9fc; }
-  .no-data { text-align:center; color:#aaa; padding:14px; font-style:italic; font-size:12px; }
-
-  /* Подвал с подписью */
-  .signature-block { margin-top:32px; padding-top:16px; border-top:1px solid #d0d8ec; display:flex; justify-content:space-between; }
-  .sig-item { flex:1; }
-  .sig-item.right { text-align:right; }
-  .sig-label { font-size:10px; color:#888; margin-bottom:4px; }
-  .sig-line  { border-bottom:1px solid #333; width:160px; height:18px; margin-bottom:2px; display:inline-block; }
-  .sig-line.left { margin:0 0 2px 0; display:block; }
-  .sig-name  { font-size:10px; color:#555; }
-  .footer-note { margin-top:12px; font-size:9px; color:#bbb; text-align:center; }
+  .footer-line { text-align:center; font-size:11px; color:#c0c0c5; margin-top:24px; }
 </style>
 </head>
 <body>
+<div class="wrap">
 
-<!-- Шапка бланка -->
-<div class="letterhead">
-  <div class="org-block">
-    <div class="org-name">TheStillness</div>
-    <div class="org-sub">Сервис психологического мониторинга и самонаблюдения</div>
+  <div class="app-header">
+    <div class="app-name">TheStillness</div>
+    <div class="report-date">${today}</div>
   </div>
-  <div class="doc-num">
-    Документ № <b>${docNum}</b><br>
-    Дата: <b>${today}</b>
-  </div>
-</div>
 
-<!-- Заголовок -->
-<div class="doc-title-block">
-  <div class="doc-title">Отчёт о психоэмоциональном состоянии</div>
-  <div class="doc-conf">Конфиденциально · Только для личного использования</div>
-</div>
-
-<!-- Реквизиты -->
-<table class="requisites">
-  <tr><td>Ф.И.О. пользователя</td><td>${userName}</td></tr>
-  <tr><td>Период наблюдения</td><td>${formatDate(startDate)} — ${formatDate(endDate)}</td></tr>
-  <tr><td>Дата формирования</td><td>${today}</td></tr>
-  <tr><td>Тип отчёта</td><td>Комплексный (эмоции + дневник)</td></tr>
-</table>
-
-<!-- Сводная статистика -->
-<div class="section">
-  <div class="section-title">1. Сводная статистика</div>
-
-  <div class="stat-cards">
-    <div class="stat-card">
-      <div class="num">${summary?.totalEmotions ?? 0}</div>
-      <div class="lbl">Записей эмоций</div>
-    </div>
-    <div class="stat-card">
-      <div class="num">${summary?.totalDiary ?? 0}</div>
-      <div class="lbl">Записей дневника</div>
-    </div>
-    <div class="stat-card">
-      <div class="num">${summary?.averageIntensity ? Number(summary.averageIntensity).toFixed(1) : '—'}</div>
-      <div class="lbl">Ср. интенсивность</div>
+  <div class="hero">
+    <div class="hero-title">Отчёт о самочувствии</div>
+    <div class="hero-name">${userName}</div>
+    <div class="hero-period">
+      <div class="hero-pill"><span>Начало</span>${formatDate(startDate)}</div>
+      <div class="hero-pill"><span>Конец</span>${formatDate(endDate)}</div>
     </div>
   </div>
 
-  <div class="progress-wrap">
-    <div class="progress-label">
-      <span>Доля позитивных эмоций</span>
-      <span><b>${totalPositiveRatio}%</b></span>
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="stat-num">${summary?.totalEmotions ?? 0}</div>
+      <div class="stat-lbl">записей эмоций</div>
     </div>
-    <div class="progress-track">
-      <div class="progress-fill" style="width:${totalPositiveRatio}%; background:${totalPositiveRatio >= 60 ? '#4A7A6C' : totalPositiveRatio >= 40 ? '#c8952a' : '#B05E5E'};"></div>
+    <div class="stat-box">
+      <div class="stat-num">${summary?.totalDiary ?? 0}</div>
+      <div class="stat-lbl">записей дневника</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num">${summary?.averageIntensity ? Number(summary.averageIntensity).toFixed(1) : '—'}</div>
+      <div class="stat-lbl">средняя интенсивность</div>
     </div>
   </div>
 
-  <table class="kpi-table">
-    <tr><td>Позитивных эмоций зафиксировано</td><td>${summary?.goodEmotions ?? 0}</td></tr>
-    <tr><td>Негативных эмоций зафиксировано</td><td>${summary?.badEmotions ?? 0}</td></tr>
-    <tr><td>Средняя интенсивность переживаний</td><td>${summary?.averageIntensity ? Number(summary.averageIntensity).toFixed(2) : '—'} / 10</td></tr>
-  </table>
-</div>
+  <div class="card">
+    <div class="card-title">Эмоциональный баланс</div>
+    <div class="bar-wrap">
+      <div class="bar-labels"><span>Позитивные</span><span>${positiveRatio}%</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${positiveRatio}%;background:${barColor};"></div></div>
+      <div class="bar-sublabels"><span>${summary?.goodEmotions ?? 0} позитивных</span><span>${summary?.badEmotions ?? 0} негативных</span></div>
+    </div>
+  </div>
 
 ${emotions.length > 0 ? `
-<div class="section">
-  <div class="section-title">2. Журнал эмоциональных состояний</div>
-  <table class="data">
-    <thead><tr><th>№</th><th>Дата и время</th><th>Эмоция</th><th>Интенсивность</th></tr></thead>
-    <tbody>
-      ${emotionRows || `<tr><td colspan="4" class="no-data">Записей нет</td></tr>`}
-    </tbody>
-  </table>
-  ${emotions.length > 50 ? `<p style="font-size:10px;color:#aaa;margin-top:5px;text-align:right;">Показаны первые 50 из ${emotions.length} записей.</p>` : ''}
-</div>
+  <div class="card">
+    <div class="card-title">Журнал эмоций</div>
+    <table class="dt">
+      <thead><tr><th>Дата и время</th><th>Эмоция</th><th>Балл</th></tr></thead>
+      <tbody>
+        ${emotionRows || `<tr><td colspan="3" class="no-data">Нет записей</td></tr>`}
+      </tbody>
+    </table>
+    ${emotions.length > 50 ? `<p style="font-size:11px;color:#aaa;margin-top:8px;">Показаны первые 50 из ${emotions.length}</p>` : ''}
+  </div>
 ` : ''}
 
 ${diary.length > 0 ? `
-<div class="section">
-  <div class="section-title">${emotions.length > 0 ? '3' : '2'}. Записи дневника (метод СМЭР)</div>
-  <table class="data">
-    <thead><tr><th>№</th><th>Дата</th><th>Ситуация</th><th>Эмоция</th><th>Поведение</th></tr></thead>
-    <tbody>
-      ${diaryRows || `<tr><td colspan="5" class="no-data">Записей нет</td></tr>`}
-    </tbody>
-  </table>
-  ${diary.length > 30 ? `<p style="font-size:10px;color:#aaa;margin-top:5px;text-align:right;">Показаны первые 30 из ${diary.length} записей.</p>` : ''}
-</div>
+  <div class="card">
+    <div class="card-title">Дневник СМЭР</div>
+    <table class="dt">
+      <thead><tr><th>Дата</th><th>Ситуация</th><th>Эмоция</th><th>Поведение</th></tr></thead>
+      <tbody>
+        ${diaryRows || `<tr><td colspan="4" class="no-data">Нет записей</td></tr>`}
+      </tbody>
+    </table>
+    ${diary.length > 30 ? `<p style="font-size:11px;color:#aaa;margin-top:8px;">Показаны первые 30 из ${diary.length}</p>` : ''}
+  </div>
 ` : ''}
 
-<!-- Подпись -->
-<div class="signature-block">
-  <div class="sig-item">
-    <div class="sig-label">Пользователь</div>
-    <div class="sig-line left"></div>
-    <div class="sig-name">${userName}</div>
-  </div>
-  <div class="sig-item right">
-    <div class="sig-label">Дата получения отчёта</div>
-    <div class="sig-name">${today}</div>
-  </div>
-</div>
+  <div class="footer-line">Сформировано в приложении TheStillness</div>
 
-<div class="footer-note">
-  Отчёт сформирован автоматически системой TheStillness · Документ носит информационный характер
 </div>
-
 </body>
 </html>`;
 };
