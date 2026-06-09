@@ -71,6 +71,10 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
       Alert.alert('Ошибка', 'Новый пароль должен быть не менее 6 символов');
       return;
     }
+    if (/\s/.test(newPassword)) {
+      Alert.alert('Ошибка', 'Пароль не должен содержать пробелы');
+      return;
+    }
     if (newPassword !== confirmPassword) {
       Alert.alert('Ошибка', 'Пароли не совпадают');
       return;
@@ -179,7 +183,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
                 <Input
                   label="Текущий пароль"
                   value={currentPassword}
-                  onChangeText={setCurrentPassword}
+                  onChangeText={(t) => setCurrentPassword(t.replace(/\s/g, ''))}
                   placeholder="Введите текущий пароль"
                   secureTextEntry
                 />
@@ -187,7 +191,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
                 <Input
                   label="Новый пароль"
                   value={newPassword}
-                  onChangeText={setNewPassword}
+                  onChangeText={(t) => setNewPassword(t.replace(/\s/g, ''))}
                   placeholder="Минимум 6 символов"
                   secureTextEntry
                 />
@@ -195,7 +199,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
                 <Input
                   label="Подтвердите новый пароль"
                   value={confirmPassword}
-                  onChangeText={setConfirmPassword}
+                  onChangeText={(t) => setConfirmPassword(t.replace(/\s/g, ''))}
                   placeholder="Повторите новый пароль"
                   secureTextEntry
                 />
