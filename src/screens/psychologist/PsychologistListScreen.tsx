@@ -86,6 +86,9 @@ export const PsychologistListScreen: React.FC<PsychologistListScreenProps> = ({ 
   ).current;
 
 
+  const getName = (p: any) =>
+    p.first_name ? `${p.first_name} ${p.last_name || ''}`.trim() : p.email;
+
   const getConnectionStatus = (psychUserId: number) =>
     myPsychologists.find(p => p.id === psychUserId);
 
@@ -148,9 +151,6 @@ export const PsychologistListScreen: React.FC<PsychologistListScreenProps> = ({ 
         : psych.email,
     });
   };
-
-  const getName = (p: any) =>
-    p.first_name ? `${p.first_name} ${p.last_name || ''}`.trim() : p.email;
 
   const filtered = allPsychologists.filter(p => {
     const name = getName(p).toLowerCase();
